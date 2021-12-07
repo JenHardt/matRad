@@ -19,7 +19,7 @@ function [dij,stf] = matRad_spotRemoval(dij,w,stf,thres)
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% Copyright 2018 the matRad development team.
+% Copyright 2021 the matRad development team.
 %
 % This file is part of the matRad project. It is subject to the license
 % terms in the LICENSE file found in the top-level directory of this
@@ -36,7 +36,7 @@ if nargin < 3 && nargout > 1
     matRad_cfg.dispError('stf is missing as input')
 end
 
-% set threshold for spot removal to 5% of the maximum weight.
+% set threshold for spot removal to 3% of the maximum weight.
 if ~exist('thres','var')
     thres = 0.03;
 end
