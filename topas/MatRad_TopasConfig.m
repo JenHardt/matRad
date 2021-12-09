@@ -60,7 +60,7 @@ classdef MatRad_TopasConfig < handle
             'addTitanium',false,... %'false','true' (can only be used with advanced HUsections)
             'HUSection','advanced',... %'default','advanced'
             'HUToMaterial','default',... %'default',','advanced','MCsquare'
-            'loadConverterFromFile','false'); % set true if you want to use your own SchneiderConverter written in "TOPAS_SchneiderConverter"
+            'loadConverterFromFile',false); % set true if you want to use your own SchneiderConverter written in "TOPAS_SchneiderConverter"
         
         arrayOrdering = 'F'; %'C';
         
@@ -141,8 +141,7 @@ classdef MatRad_TopasConfig < handle
             %   Default execution paths are set here
             
             obj.thisFolder = fileparts(mfilename('fullpath'));
-            obj.workingDir = ['E:/Paper/results/AugustTesting' filesep];
-            %             obj.workingDir = [obj.thisFolder filesep 'MCrun' filesep];
+            obj.workingDir = [obj.thisFolder filesep 'MCrun' filesep];
             
             %Let's set some default commands taken from topas installation
             %instructions for mac & debain/ubuntu
@@ -921,12 +920,12 @@ classdef MatRad_TopasConfig < handle
             
             if isequal(obj.arrayOrdering,'C')
                 if obj.matRad_cfg.logLevel > 2
-                    obj.matRad_cfg.dispInfo('Exporting cube in C ordering...')
+                    obj.matRad_cfg.dispInfo('Exporting cube in C ordering...\n')
                 end
                 permutation = [3 1 2];
             else
                 if obj.matRad_cfg.logLevel > 2
-                    obj.matRad_cfg.dispInfo('Exporting cube in FORTRAN ordering...')
+                    obj.matRad_cfg.dispInfo('Exporting cube in FORTRAN ordering...\n')
                 end
                 permutation = [2 1 3];
             end
@@ -1111,7 +1110,7 @@ classdef MatRad_TopasConfig < handle
                             fprintf(fID,['iv:Ge/Patient/SchneiderHUToMaterialSections = %i ',repmat('%d ',1,numel(HUToMaterial.sections)),'\n'],numel(HUToMaterial.sections),HUToMaterial.sections);
                             % load defined material based on materialConverter.HUToMaterial
                             
-                            fname = fullfile(obj.thisFolder,filesep,obj.converterFolder,filesep,obj.infilenames.matConv_Schneider_definedMaterials.('obj.materialConverter.HUToMaterial'));
+                            fname = fullfile(obj.thisFolder,filesep,obj.converterFolder,filesep,obj.infilenames.matConv_Schneider_definedMaterials.(obj.materialConverter.HUToMaterial));
                             materials = splitlines(fileread(fname));
                             switch obj.materialConverter.HUToMaterial
                                 case 'default'
