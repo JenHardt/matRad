@@ -220,6 +220,9 @@ end
 %BDL File
 bdFile = [machine.meta.machine '.txt'];
 
+% override base data in case of APM, it is not needed here
+machine.data = matRad_overrideBaseData(machine.data);
+
 % bdFile = 'BDL_matRad.txt'; %use for baseData fit 
 MCsquareBDL = MatRad_MCsquareBaseData(machine,stf);
 %matRad_createMCsquareBaseDataFile(bdFile,machine,1);
