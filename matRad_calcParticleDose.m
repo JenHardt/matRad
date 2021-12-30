@@ -42,28 +42,7 @@ end
 
 matRad_cfg.dispInfo('matRad: Particle dose calculation... \n');
 
-if ~isfield(pln,'propHeterogeneity')
-    pln.propHeterogeneity.calcHetero = false;
-else
-    if ~isfield(pln.propHeterogeneity,'calcHetero')
-        pln.propHeterogeneity.calcHetero = matRad_cfg.propHeterogeneity.defaultCalcHetero;
-    end
-    if ~isfield(pln.propHeterogeneity,'useOriginalDepths')
-        pln.propHeterogeneity.useOriginalDepths = matRad_cfg.propHeterogeneity.defaultUseOriginalDepths;
-    end
-    if ~isfield(pln.propHeterogeneity,'type')
-        pln.propHeterogeneity.type = matRad_cfg.propHeterogeneity.defaultType;
-    end
-    if ~isfield(pln.propHeterogeneity,'modulateBioDose')
-        pln.propHeterogeneity.modulateBioDose = matRad_cfg.propHeterogeneity.defaultModulateBioDose;
-    end
-    if ~isfield(pln.propHeterogeneity,'modulateLET')
-        pln.propHeterogeneity.modulateLET = matRad_cfg.propHeterogeneity.defaultModulateLET;
-        if ~pln.bioParam.bioOpt
-            pln.propHeterogeneity.modulateLET = false;
-        end
-    end
-end
+pln = matRad_cfg.loadDefaultParam(pln);
 
 if pln.propHeterogeneity.calcHetero
     cstOriginal = cst;
@@ -141,10 +120,6 @@ if pln.bioParam.bioOpt
     
 end
 
-if ~isfield(pln,'propDoseCalc') || ~isfield(pln.propDoseCalc,'calcLET')
-    pln.propDoseCalc.calcLET = matRad_cfg.propDoseCalc.defaultCalcLET;
-end
-
 if  pln.propDoseCalc.calcLET
     if isfield(machine.data,'LET')
         
@@ -169,9 +144,7 @@ end
 
 %Toggles correction of small difference of current SSD to distance used
 %in generation of base data (e.g. phantom surface at isocenter)
-if ~isfield(pln,'propDoseCalc') || ~isfield(pln.propDoseCalc, 'airOffsetCorrection')
-    pln.propDoseCalc.airOffsetCorrection = true;
-    
+if pln.propDoseCalc.airOffsetCorrection
     if ~isfield(machine.meta, 'fitAirOffset')
         fitAirOffset = 0; %By default we assume that the base data was fitted to a phantom with surface at isocenter
         matRad_cfg.dispDebug('Asked for correction of Base Data Air Offset, but no value found. Using default value of %f mm.\n',fitAirOffset);
@@ -254,17 +227,8 @@ if pln.bioParam.bioOpt
     end %  end is LEM model
 end
 
-
 % lateral cutoff for raytracing and geo calculations
-if ~isfield(pln,'propDoseCalc') || ~isfield(pln.propDoseCalc,'geometricCutOff')
-    effectiveLateralCutoff = matRad_cfg.propDoseCalc.defaultGeometricCutOff;
-end
-
-if ~isfield(pln,'propDoseCalc') || ~isfield(pln.propDoseCalc,'lateralCutOff')
-    pln.propDoseCalc.lateralCutOff = matRad_cfg.propDoseCalc.defaultLateralCutOff;
-end
-
-
+pln.propDoseCalc.effectiveLateralCutoff = pln.propDoseCalc.geometricCutoff;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %loop over all shift scenarios
@@ -292,7 +256,7 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
         % Calculate radiological depth cube for heterogeneity correction
         if pln.propHeterogeneity.calcHetero
             matRad_cfg.dispInfo('matRad: calculate radiological depth cube for heterogeneity correction...');
-            heteroCorrDepthV = matRad_rayTracing(stf(i),calcHeteroCorrStruct,VctGrid,rot_coordsV,effectiveLateralCutoff);
+            heteroCorrDepthV = matRad_rayTracing(stf(i),calcHeteroCorrStruct,VctGrid,rot_coordsV,pln.propDoseCalc.effectiveLateralCutoff);
             % HETERO interpolate hetero depth cube to dose grid resolution
             heteroCorrDepthV = matRad_interpRadDepth...
                 (ct,VctGrid,VdoseGrid,dij.doseGrid.x,dij.doseGrid.y,dij.doseGrid.z,heteroCorrDepthV);
@@ -301,9 +265,8 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
         
         % Determine lateral cutoff
         matRad_cfg.dispInfo('matRad: calculate lateral cutoff...');
-        cutOffLevel = pln.propDoseCalc.lateralCutOff;
         visBoolLateralCutOff = 0;
-        machine = matRad_calcLateralParticleCutOff(machine,cutOffLevel,stf(i),visBoolLateralCutOff);
+        machine = matRad_calcLateralParticleCutOff(machine,pln.propDoseCalc.lateralCutOff,stf(i),visBoolLateralCutOff);
         matRad_cfg.dispInfo('Done!\n');
         
         for j = 1:stf(i).numOfRays % loop over all rays
@@ -399,9 +362,9 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                                 
                                 
                                 % find depth depended lateral cut off
-                                if cutOffLevel >= 1
+                                if pln.propDoseCalc.lateralCutoff >= 1
                                     currIx = radDepths <= machine.data(energyIx).depths(end) + offsetRadDepth;
-                                elseif cutOffLevel < 1 && cutOffLevel > 0
+                                elseif pln.propDoseCalc.lateralCutoff < 1 && pln.propDoseCalc.lateralCutoff > 0
                                     % perform rough 2D clipping
                                     currIx = radDepths <= machine.data(energyIx).depths(end) + offsetRadDepth & ...
                                         radialDist_sq <= max(machine.data(energyIx).LatCutOff.CutOff.^2);

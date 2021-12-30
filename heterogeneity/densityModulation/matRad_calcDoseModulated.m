@@ -1,27 +1,21 @@
-function [resultGUI,pln] = matRad_calcDoseModulated(ct,stf,pln,cst,param,weights,samples,Pmod,modulation,continuous)
+function [resultGUI,pln] = matRad_calcDoseModulated(ct,stf,pln,cst,weights)
 
 global matRad_cfg;
 matRad_cfg =  MatRad_Config.instance();
 
-if nargin < 10
-    continuous = true;
-end
-if nargin < 9
-    modulation = 'binomial';
-end
-if nargin < 7
-    samples = 50;
-end
-if nargin < 8
-    Pmod = 800;
-end
+pln = matRad_cfg.loadDefaultParam(pln);
+
+param = [];
+samples = pln.propHeterogeneity.sampling.numOfSamples;
+
+
 
 if iscell(param)
     pln.propHeterogeneity.mode = param{1};
     histories = param{2};
     calcOpenstack = param{3};
     
-    if strcmp(pln.propHeterogeneity.mode,'TOPAS')
+    if strcmp(pln.propHeterogeneity.sampling.mode,'TOPAS')
         %         pln.propMC.materialConverter.densityCorrection = 'TOPAS2'; %'default','TOPAS1','TOPAS2'       
         pln.propMC.materialConverter.HUSection = 'advanced'; %'default','advanced'
         pln.propMC.materialConverter.HUToMaterial = 'default'; %'default','simpleLung','advanced'
@@ -73,7 +67,7 @@ end
 
 % Turn info and warning messages off for modulation
 logLevel = matRad_cfg.logLevel;
-matRad_cfg.logLevel = 3;
+matRad_cfg.logLevel = 1;
     
 if iscell(param) %case TOPAS
     [ctR,cstR] = matRad_resampleTopasGrid(ct,cst,pln,stf);
@@ -91,7 +85,7 @@ pln.propDoseCalc.useGivenEqDensityCube = true;
 
 for i = 1:samples
     fprintf('Dose calculation for CT %i/%i \n',i,samples)
-    ct_mod = matRad_modulateDensity(ctR,cstR,pln,Pmod,modulation,continuous);
+    ct_mod = matRad_modulateDensity(ctR,cstR,pln);
     ct_mod.sampleIdx = i;
     %%  
     if iscell(param) %case TOPAS

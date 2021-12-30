@@ -52,16 +52,11 @@ figureWait = waitbar(0,'calculate dose influence matrix for photons...');
 % show busy state
 set(figureWait,'pointer','watch');
 
-% set lateral cutoff value
-lateralCutoff = matRad_cfg.propDoseCalc.defaultGeometricCutOff; % [mm]
+% load default parameters if not set
+pln = matRad_cfg.loadDefaultParam(pln);
 
-% toggle custom primary fluence on/off. if 0 we assume a homogeneous
-% primary fluence, if 1 we use measured radially symmetric data
-if ~isfield(pln,'propDoseCalc') || ~isfield(pln.propDoseCalc,'useCustomPrimaryPhotonFluence')
-    useCustomPrimFluenceBool = matRad_cfg.propDoseCalc.defaultUseCustomPrimaryPhotonFluence;
-else
-    useCustomPrimFluenceBool = pln.propDoseCalc.useCustomPrimaryPhotonFluence;
-end
+% set lateral cutoff value
+lateralCutoff = pln.propDoseCalc.geometriCutoff; % [mm]
 
 % 0 if field calc is bixel based, 1 if dose calc is field based
 isFieldBasedDoseCalc = strcmp(num2str(pln.propStf.bixelWidth),'field');
@@ -105,6 +100,8 @@ if ~isFieldBasedDoseCalc
    % Create fluence matrix
    F = ones(floor(fieldWidth/intConvResolution));
    
+   % toggle custom primary fluence on/off. if 0 we assume a homogeneous
+   % primary fluence, if 1 we use measured radially symmetric data
    if ~useCustomPrimFluenceBool
       % gaussian convolution of field to model penumbra
       F = real(ifft2(fft2(F,gaussConvSize,gaussConvSize).*fft2(gaussFilter,gaussConvSize,gaussConvSize)));
@@ -127,7 +124,7 @@ kernelConvSize = 2*kernelConvLimit;
 
 % define an effective lateral cutoff where dose will be calculated. note
 % that storage within the influence matrix may be subject to sampling
-effectiveLateralCutoff = lateralCutoff + fieldWidth/2;
+pln.propDoseCalc.effectiveLateralCutoff = lateralCutoff + fieldWidth/2;
 
 % book keeping - this is necessary since pln is not used in optimization or
 % matRad_calcCubes

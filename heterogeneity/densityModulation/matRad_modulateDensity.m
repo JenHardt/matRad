@@ -1,4 +1,4 @@
-function ct = matRad_modulateDensity(ct,cst,pln,Pmod,mode,continuous)
+function ct = matRad_modulateDensity(ct,cst,pln)
 % matRad density modulation function
 %
 % call
@@ -34,11 +34,6 @@ function ct = matRad_modulateDensity(ct,cst,pln,Pmod,mode,continuous)
 global matRad_cfg;
 matRad_cfg =  MatRad_Config.instance();
 
-if nargin < 5
-    mode = 'binomial';
-    continuous = false;
-end
-
 % get all unique tumor indices from PTV segmentations
 % idx = strcmp(cst(:,2),'PTV');
 % tumorIdx = [cst{idx,4}];
@@ -60,7 +55,7 @@ lungIdx = unique(vertcat(lungIdx{:}));
 %     ct = matRad_calcWaterEqD(ct,pln);
 % end
 
-if strcmp(mode, 'binomial')
+if strcmp(pln.propHeterogeneity.sampling.method, 'binomial')
     rhoLung = 1.05;
     
     pLung = ct.cube{1}(lungIdx) / rhoLung;
@@ -69,11 +64,11 @@ if strcmp(mode, 'binomial')
         pLung = cctt.cube{1}(lungIdx) / rhoLung;
     end
       
-    d = Pmod/1000 ./ (1-pLung) / rhoLung; % [1] eq.8: Pmod = d*(1-pLung) * rhoLung
+    d = pln.propHeterogeneity.modPower/1000 ./ (1-pLung) / rhoLung; % [1] eq.8: Pmod = d*(1-pLung) * rhoLung
     
     D = ct.resolution.y;
     
-    if continuous
+    if pln.propHeterogeneity.sampling.continuous
         n = D./d;
         largeEnough = n>1;
     else
@@ -86,14 +81,13 @@ if strcmp(mode, 'binomial')
     pLung = pLung(largeEnough);
     n = n(largeEnough);
     
-    samples = matRad_sampleLungBino(n,pLung,rhoLung,length(lungIdx),continuous);
+    samples = matRad_sampleLungBino(n,pLung,rhoLung,length(lungIdx),pln.propHeterogeneity.sampling.continuous);
 
     ct.cube{1}(lungIdx) = samples;
     ct.cubeHU{1}(lungIdx) = 1024*(ct.cube{1}(lungIdx)-1);
         
-elseif strcmp(mode, 'poisson')
-    
-    DensMod = matRad_loadModDist(Pmod);
+elseif strcmp(pln.propHeterogeneity.sampling.method, 'poisson')
+    DensMod = matRad_loadModDist(pln.propHeterogeneity.modPower);
     
     DensMod(1,1)=0.001;
     DensMod(:,4)=DensMod(:,2);
@@ -131,7 +125,7 @@ elseif strcmp(mode, 'poisson')
 %     ct.cube{1}(lungIdx) = samples / max(samples);
 end
 
-if strcmp(pln.propHeterogeneity.mode,'TOPAS') && strcmp(mode, 'binomial') && ~contains(pln.propMC.materialConverter.addSection,'none')
+if strcmp(pln.propHeterogeneity.mode,'TOPAS') && strcmp(pln.propHeterogeneity.sampling.method, 'binomial') && ~contains(pln.propMC.materialConverter.addSection,'none')
     % only include different densities that are significantly different
     % (5th digit)
     lung = round(ct.cube{1}(lungIdx),3);
