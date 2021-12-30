@@ -34,6 +34,8 @@ matRad_cfg = MatRad_Config.instance();
 
 matRad_cfg.dispInfo('matRad: Generating stf struct...\n');
 
+pln = matRad_cfg.loadDefaultParam(pln);
+
 if nargin < 4
     visMode = 0;
 end

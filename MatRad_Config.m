@@ -168,6 +168,8 @@ classdef MatRad_Config < handle
             obj.propDoseCalc.defaultAirOffsetCorrection = true;
 
             obj.propOpt.defaultMaxIter = 500;
+            obj.propOpt.defaultRunDAO = 0;
+            obj.propOpt.defaultRunSequencing = 0;
 
             obj.propMC.defaultCarbonEnergySpread = 0; %[%]
 
@@ -339,7 +341,7 @@ classdef MatRad_Config < handle
 
         function pln = loadDefaultParam(obj,pln)
             % function to load all non-set parameters into pln struct
-            structs = {'propHeterogeneity','propDoseCalc'};
+            structs = {'propHeterogeneity','propDoseCalc','propOpt'};
             for propName = structs
                 if ~isfield(pln,propName{1})
                     pln.(propName{1}) = struct();
