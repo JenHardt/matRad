@@ -1,6 +1,5 @@
 # These Materials recreate the Material lookup as defined by MCsquare for 100% compatability. Note that the reference does some approximations (e.g., no Argon in Air) to spare Material overhead.
 sv:Ge/Patient/SchneiderElements = 7 "Hydrogen" "Carbon" "Nitrogen" "Oxygen" "Phosphorus" "Calcium" "Titanium"
-iv:Ge/Patient/SchneiderHUToMaterialSections = 26 -1000 -950 -120 -82 -52 -22 8 19 80 120 200 300 400 500 600 700 800 900 1000 1100 1200 1300 1400 1500 2995 2996
 uv:Ge/Patient/SchneiderMaterialsWeight1  = 7 0.0     0.0001 0.7650   0.2349  0.0    0.0	0.0
 uv:Ge/Patient/SchneiderMaterialsWeight2  = 7 0.104   0.106  0.031    0.757   0.002  0.0	0.0
 uv:Ge/Patient/SchneiderMaterialsWeight3  = 7 0.116   0.683  0.002    0.199   0.0    0.0	0.0
