@@ -5,9 +5,10 @@ function [machine] = matRad_getAlphaBetaCurves(machine,varargin)
 %   machine.data = matRad_getAlphaBetaCurves(machine.data,pln,cst)
 %
 % input
-%   machine.data:       matRad machine file to change
-%   varargin:       (optional) matRad cst struct and/or specify RBE modelName
-%                   to use for computation
+%   machine.data:           matRad machine file to change
+%   varargin (optional):    cst:        matRad cst struct
+%                           modelName:  specify RBE modelName
+%                   	    overrideAB: calculate new alpha beta even if available
 %
 % output
 %   machine.data:       updated machine file with alpha/beta curves
@@ -29,66 +30,79 @@ function [machine] = matRad_getAlphaBetaCurves(machine,varargin)
 matRad_cfg =  MatRad_Config.instance();
 
 if contains(machine.meta.radiationMode,{'car','hel'})
-   matRad_cfg.dispError('alphaBetaCurves cannot be calculated for carbon or helium ions.'); 
+    matRad_cfg.dispError('alphaBetaCurves cannot be calculated for carbon or helium ions.');
 end
 
+overrideAB = false;
 if ~isempty(varargin)
     for i = 1:nargin-1
         if iscell(varargin{i})
             cst = varargin{i};
-        elseif isstr(varargin{i})
-            modelName = varargin{i};
+        elseif ischar(varargin{i})
+            if contains(varargin{i},'override')
+                overrideAB = true;
+            else
+                modelName = varargin{i};
+            end
         end
     end
 end
 
-%% Set biological models
-pln.radiationMode   = machine.meta.radiationMode;     % either photons / protons / carbon
-if ~exist('modelName','var')
-    if contains(pln.radiationMode,'proton')
-        modelName = 'MCN'; % Use McNamara model as default for protons
-    end
-end
-pln.bioParam = matRad_bioModel(pln.radiationMode,'RBExD',modelName);
 
-% save original fields with suffix if available
-if isfield(machine.data,'alphaX')
-    fieldnames = {'alphaX','betaX','alphaBetaRatio','alpha','beta'};
-    for k=1:numel(fieldnames)
-        [machine.data.([fieldnames{k} '_org'])] = deal(machine.data.(fieldnames{k}));
+if ~isfield(machine.data,'alphaX') || overrideAB
+    %% save original fields with suffix if available
+    if overrideAB
+        fieldnames = {'alphaX','betaX','alphaBetaRatio','alpha','beta'};
+        for k=1:numel(fieldnames)
+            [machine.data.([fieldnames{k} '_org'])] = deal(machine.data.(fieldnames{k}));
+        end
+        machine.data = rmfield(machine.data,fieldnames);
     end
-    machine.data = rmfield(machine.data,fieldnames);
-end
 
-%% get unique combinations of alpha/beta from cst or use default alpha/beta values
-if ~exist('cst','var')
-    ab(1,1) = 0.1;
-    ab(1,2) = 0.05;
+    %% Set biological models
+    pln.radiationMode   = machine.meta.radiationMode;     % either photons / protons / carbon
+    if ~exist('modelName','var')
+        if contains(pln.radiationMode,'proton')
+            modelName = 'MCN'; % Use McNamara model as default for protons
+        end
+    end
+    pln.bioParam = matRad_bioModel(pln.radiationMode,'RBExD',modelName);
+
+    %% get unique combintions of alpha/beta from cst or use default alpha/beta values
+    if ~exist('cst','var')
+        ab(1,1) = 0.1;
+        ab(1,2) = 0.05;
+    else
+        for i = 1:size(cst,1)
+            ab(i,1) = cst{i,5}.alphaX;
+            ab(i,2) = cst{i,5}.betaX;
+        end
+    end
+    ab = unique(ab,'rows');
+
+    % save alpha/beta values for each energy in machine.data
+    [machine.data(:).alphaX] = deal(ab(:,1));
+    [machine.data(:).betaX] = deal(ab(:,2));
+    [machine.data(:).alphaBetaRatio] = deal(ab(:,1) ./ ab(:,2));
+
+    % calculate alpha/beta curves for each energy in machine.data
+    for j = 1:length(machine.data)
+        depths = machine.data(j).depths + machine.data(j).offset;
+        voxelsOnes = ones(numel(depths),1);
+
+        machine.data(j).alpha = zeros(numel(voxelsOnes),size(ab,1));
+        machine.data(j).beta = zeros(numel(voxelsOnes),size(ab,1));
+
+        for k = 1:length(machine.data(j).alphaX)
+            [machine.data(j).alpha(:,k),machine.data(j).beta(:,k)] = pln.bioParam.calcLQParameter(depths,machine.data(j),voxelsOnes,...
+                machine.data(j).alphaX(k)*voxelsOnes,machine.data(j).betaX(k)*voxelsOnes,machine.data(j).alphaBetaRatio(k)*voxelsOnes);
+        end
+    end
+
 else
-    for i = 1:size(cst,1)
-        ab(i,1) = cst{i,5}.alphaX;
-        ab(i,2) = cst{i,5}.betaX;
-    end
-end
-ab = unique(ab,'rows');
+    matRad_cfg.dispWarning('Basedata already contains alpha/beta curves. Use "overrideAB"-flag to override.')
 
-% save alpha/beta values for each energy in machine.data
-[machine.data(:).alphaX] = deal(ab(:,1));
-[machine.data(:).betaX] = deal(ab(:,2));
-[machine.data(:).alphaBetaRatio] = deal(ab(:,1) ./ ab(:,2));
-
-% calculate alpha/beta curves for each energy in machine.data
-for j = 1:length(machine.data)
-    depths = machine.data(j).depths + machine.data(j).offset;
-    voxelsOnes = ones(numel(depths),1);
-    
-    machine.data(j).alpha = zeros(numel(voxelsOnes),size(ab,1));
-    machine.data(j).beta = zeros(numel(voxelsOnes),size(ab,1));
-    
-    for k = 1:length(machine.data(j).alphaX)
-        [machine.data(j).alpha(:,k),machine.data(j).beta(:,k)] = pln.bioParam.calcLQParameter(depths,machine.data(j),voxelsOnes,...
-            machine.data(j).alphaX(k)*voxelsOnes,machine.data(j).betaX(k)*voxelsOnes,machine.data(j).alphaBetaRatio(k)*voxelsOnes);
-    end
 end
+
 
 end
