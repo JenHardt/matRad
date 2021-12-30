@@ -46,7 +46,7 @@ classdef MatRad_TopasConfig < handle
         
         useOrigBaseData = false; % base data of the original matRad plan will be used?
         beamProfile = 'biGaussian'; %'biGaussian' (emittance); 'simple'
-        useEnergySpectrum = false;
+        useEnergySpectrum = true;
         
         %Not yet implemented
         %beamletMode = false; %In beamlet mode simulation will be performed for a dose influence matrix (i.e., each beamlet simulates numHistories beamlets)
@@ -54,8 +54,9 @@ classdef MatRad_TopasConfig < handle
         pencilBeamScanning = true; %This should be always true (enables deflection)
         
         %Image
-        materialConverter = struct('mode','HUToWaterSchneider',...    %'RSP';
-            'densityCorrection','TOPAS2',... %'default','TOPAS1','TOPAS2'
+        converterFolder = 'materialConverter';
+        materialConverter = struct('mode','HUToWaterSchneider',...    %'RSP','HUToWaterSchneider';
+            'densityCorrection','TOPAS1',... %'default','TOPAS1','TOPAS2','TOPAS3'
             'addSection','none',... %'none','lung','poisson','sampledDensities' (the last 2 only with modulation)
             'addTitanium',false,... %'false','true' (can only be used with advanced HUsections)
             'HUSection','advanced',... %'default','advanced'
@@ -69,6 +70,7 @@ classdef MatRad_TopasConfig < handle
         rsp_methodCube = 2; %1: TsBox with variable voxels, 2: TsImageCube with Density Bins and Custom Image converter
         
         %Scoring
+        scorerFolder = 'scorer';
         scorer = struct('volume',false,...
             'doseToMedium',true,...
             'doseToWater',false,...
@@ -98,8 +100,6 @@ classdef MatRad_TopasConfig < handle
         worldMaterial = 'G4_AIR';
         
         %filenames
-        converterFolder = 'materialConverter';
-        scorerFolder = 'scorer';
         outfilenames = struct(  'patientParam','matRad_cube.txt',...
             'patientCube','matRad_cube.dat');
         
@@ -205,23 +205,9 @@ classdef MatRad_TopasConfig < handle
             end
             
             if isfield(pln,'propMC') && isfield(pln.propMC,'materialConverter')
-                if isfield(pln.propMC.materialConverter,'mode')
-                    obj.materialConverter.mode = pln.propMC.materialConverter.mode;
-                end
-                if isfield(pln.propMC.materialConverter,'densityCorrection')
-                    obj.materialConverter.densityCorrection = pln.propMC.materialConverter.densityCorrection;
-                end
-                if isfield(pln.propMC.materialConverter,'addSection')
-                    obj.materialConverter.addSection = pln.propMC.materialConverter.addSection;
-                end
-                if isfield(pln.propMC.materialConverter,'HUSection')
-                    obj.materialConverter.HUSection = pln.propMC.materialConverter.HUSection;
-                end
-                if isfield(pln.propMC.materialConverter,'addTitanium')
-                    obj.materialConverter.addTitanium = pln.propMC.materialConverter.addTitanium;
-                end
-                if isfield(pln.propMC.materialConverter,'HUToMaterial')
-                    obj.materialConverter.HUToMaterial = pln.propMC.materialConverter.HUToMaterial;
+                fnames = fieldnames(pln.propMC.materialConverter);
+                for f = 1:length(fnames)
+                    obj.materialConverter.(fnames{f}) = pln.propMC.materialConverter.(fnames{f});
                 end
             end
             
@@ -1099,8 +1085,8 @@ classdef MatRad_TopasConfig < handle
                             switch obj.materialConverter.HUToMaterial
                                 case 'default'
                                     HUToMaterial.sections = rspHlut(2,1);
-                                case 'simple'
-                                    HUToMaterial.sections = [rspHlut(2,1) 0];
+                                case 'MCsquare'
+                                    HUToMaterial.sections = [-1000 -950 -120 -82 -52 -22 8 19 80 120 200 300 400 500 600 700 800 900 1000 1100 1200 1300 1400 1500];
                                 case 'advanced'
                                     HUToMaterial.sections = [-950 -120 -83 -53 -23 7 18 80 120 200 300 400 500 600 700 800 900 1000 1100 1200 1300 1400 1500];
                             end
@@ -1114,7 +1100,7 @@ classdef MatRad_TopasConfig < handle
                             materials = splitlines(fileread(fname));
                             switch obj.materialConverter.HUToMaterial
                                 case 'default'
-                                    fprintf(fID,'\n%s\n',materials{1:3});
+                                    fprintf(fID,'\n%s\n',materials{1:4});
                                     ExcitationEnergies = str2double(split(string(materials{end}(strfind(string(materials{end}),'=')+4:end-3))));
                                     if contains(obj.materialConverter.addSection,{'lung','sampledDensities'})
                                         fprintf(fID,'uv:Ge/Patient/SchneiderMaterialsWeight%i = 5 0.10404040 0.75656566 0.03131313 0.10606061 0.00202020\n',length(materials)-1);
