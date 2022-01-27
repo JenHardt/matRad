@@ -197,6 +197,7 @@ classdef MatRad_Config < handle
             obj.propHeterogeneity.sampling.defaultMethod = 'binomial';
             obj.propHeterogeneity.sampling.defaultUseContinuous = true;
             obj.propHeterogeneity.sampling.defaultNumOfSamples = 50;
+            obj.propHeterogeneity.sampling.defaultContinuous = true;
 
             obj.defaults.samplingScenarios = 25;
 

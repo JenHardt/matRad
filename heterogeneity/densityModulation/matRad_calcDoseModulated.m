@@ -5,33 +5,28 @@ matRad_cfg =  MatRad_Config.instance();
 
 pln = matRad_cfg.loadDefaultParam(pln);
 
-param = [];
+
 samples = pln.propHeterogeneity.sampling.numOfSamples;
 
-
-
-if iscell(param)
-    pln.propHeterogeneity.mode = param{1};
-    histories = param{2};
-    calcOpenstack = param{3};
-    
-    if strcmp(pln.propHeterogeneity.sampling.mode,'TOPAS')
-        %         pln.propMC.materialConverter.densityCorrection = 'TOPAS2'; %'default','TOPAS1','TOPAS2'       
+switch pln.propHeterogeneity.sampling.mode
+    case 'TOPAS'
+        %         pln.propMC.materialConverter.densityCorrection = 'TOPAS2'; %'default','TOPAS1','TOPAS2'
         pln.propMC.materialConverter.HUSection = 'advanced'; %'default','advanced'
         pln.propMC.materialConverter.HUToMaterial = 'default'; %'default','simpleLung','advanced'
         if ~isfield(pln.propMC.materialConverter,'addSection')
-            if strcmp(modulation,'poisson')
+            if strcmp(pln.propHeterogeneity.sampling.method,'poisson')
                 pln.propMC.materialConverter.addSection = 'poisson';
             else
                 pln.propMC.materialConverter.addSection = 'sampledDensities'; %'none','lung','poisson','sampledDensities' (the last 2 only with modulation)
-                %             pln.propMC.materialConverter.densityCorrection.addSection = 'sampledDensities'; %'none','lung','poisson','sampledDensities' (the last 2 only with modulation)
             end
         end
-    else
-        matRad_cfg.dispError('No sampling mode other than TOPAS implemented');
-    end
-else
-    pln.propHeterogeneity.mode = 'matRad';
+
+        histories = pln.propMC.histories;
+        calcExternal = pln.propMC.externalCalculation;
+    case 'matRad'
+
+    otherwise
+        matRad_cfg.dispError('No sampling mode other than TOPAS and matRad implemented');
 end
 
 % parallelComputationTOPAS =1;
@@ -68,12 +63,13 @@ end
 % Turn info and warning messages off for modulation
 logLevel = matRad_cfg.logLevel;
 matRad_cfg.logLevel = 1;
-    
-if iscell(param) %case TOPAS
-    [ctR,cstR] = matRad_resampleTopasGrid(ct,cst,pln,stf);
-else %case matRad
-    ctR = ct;
-    cstR = cst;
+
+switch pln.propHeterogeneity.sampling.mode
+    case 'TOPAS'
+        [ctR,cstR] = matRad_resampleTopasGrid(ct,cst,pln,stf);
+    case 'matRad'
+        ctR = ct;
+        cstR = cst;
 end
 resultGUI.physicalDose = zeros(ct.cubeDim);
 if strcmp(pln.bioParam.quantityOpt,'RBExD')
@@ -82,19 +78,21 @@ end
 
 % set this flag so that the modulated cube is not overwritten in matRad_calcDoseInit
 pln.propDoseCalc.useGivenEqDensityCube = true;
+data = cell(samples,1);
+std = cell(samples,1);
 
 for i = 1:samples
-    fprintf('Dose calculation for CT %i/%i \n',i,samples)
+    fprintf([pln.propHeterogeneity.sampling.mode,': Dose calculation for CT %i/%i \n'],i,samples)
     ct_mod = matRad_modulateDensity(ctR,cstR,pln);
     ct_mod.sampleIdx = i;
-    %%  
-    if iscell(param) %case TOPAS
-        if strcmp(pln.propHeterogeneity.mode,'TOPAS')
+    %%
+    switch pln.propHeterogeneity.sampling.mode
+        case 'TOPAS'
             pln.propMC.proton_engine = 'TOPAS';
             pln.propMC.numOfRuns = 1;
-            resultGUI_mod = matRad_calcDoseDirectMC(ct_mod,stf,pln,cstR,weights,histories/samples,calcOpenstack);
-            
-            if ~calcOpenstack
+            resultGUI_mod = matRad_calcDoseDirectMC(ct_mod,stf,pln,cstR,weights,histories/samples,calcExternal);
+
+            if ~calcExternal
                 %     resultGUI.(['physicalDose',num2str(s)]) = resultGUI.(['physicalDose',num2str(s)]) + resultGUI_mod.physicalDose/s;
                 if strcmp(pln.bioParam.quantityOpt,'RBExD')
                     resultGUI.RBExD = resultGUI.RBExD + resultGUI_mod.RBExD/samples;
@@ -102,33 +100,35 @@ for i = 1:samples
                 resultGUI.physicalDose = resultGUI.physicalDose + resultGUI_mod.physicalDose/samples;
                 std{i} = resultGUI_mod.physicalDose_std;
             end
-        else
-            error('Make sure you selected the correct environment for modulation.')
-        end
-    else %case matRad
-        resultGUI_mod = matRad_calcDoseDirect(ct_mod,stf,pln,cstR,weights);
-        
-        if strcmp(pln.bioParam.quantityOpt,'RBExD')
-            resultGUI.RBExD = resultGUI.RBExD + resultGUI_mod.RBExD/samples;
-        end
-        resultGUI.physicalDose = resultGUI.physicalDose + resultGUI_mod.physicalDose/samples;
+        case 'matRad'
+            resultGUI_mod = matRad_calcDoseDirect(ct_mod,stf,pln,cstR,weights);
+
+            if strcmp(pln.bioParam.quantityOpt,'RBExD')
+                resultGUI.RBExD = resultGUI.RBExD + resultGUI_mod.RBExD/samples;
+            end
+            resultGUI.physicalDose = resultGUI.physicalDose + resultGUI_mod.physicalDose/samples;
     end
+
     data{i} = resultGUI_mod.physicalDose;
-    
+
 end
 
-% Calculate Standard deviation
-topasMeanDiff = 0;
+% Calculate Standard deviation between samples
+meanDiff = 0;
 for k = 1:samples
-    topasMeanDiff = topasMeanDiff + (data{k} - resultGUI.physicalDose).^2;
+    meanDiff = meanDiff + (data{k} - resultGUI.physicalDose).^2;
 end
-topasVarMean = topasMeanDiff./(samples - 1)./samples;
-topasStdMean = sqrt(topasVarMean);
+varMean = meanDiff./(samples - 1)./samples;
+stdMean = sqrt(varMean);
 
-topasStdSum = topasStdMean * samples;
-topasVarSum = topasStdSum.^2;
+stdSum = stdMean * samples;
+varSum = stdSum.^2;
 
-resultGUI.physicalDose_std = sqrt(topasVarSum);
+resultGUI.physicalDose_std = sqrt(varSum);
+
+if strcmp(pln.propHeterogeneity.sampling.mode,'TOPAS') && ~calcExternal
+    resultGUI.physicalDose_std_individual = std;
+end
 
 %Change loglevel back to default;
 matRad_cfg.logLevel = logLevel;

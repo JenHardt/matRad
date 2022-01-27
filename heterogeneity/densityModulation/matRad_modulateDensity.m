@@ -51,9 +51,9 @@ lungIdx = unique(vertcat(lungIdx{:}));
 %lungIdx = lungIdx(~ismember(lungIdx,tumorIdx));
 
 % calculate ct cube from cubeHU if not specified
-% if ~isfield(ct,'cube')
-%     ct = matRad_calcWaterEqD(ct,pln);
-% end
+if ~isfield(ct,'cube')
+    ct = matRad_calcWaterEqD(ct,pln);
+end
 
 if strcmp(pln.propHeterogeneity.sampling.method, 'binomial')
     rhoLung = 1.05;
@@ -61,7 +61,7 @@ if strcmp(pln.propHeterogeneity.sampling.method, 'binomial')
     pLung = ct.cube{1}(lungIdx) / rhoLung;
     if any(pLung > 1)
         lungIdx = lungIdx(pLung <= 1);
-        pLung = cctt.cube{1}(lungIdx) / rhoLung;
+        pLung = ct.cube{1}(lungIdx) / rhoLung;
     end
       
     d = pln.propHeterogeneity.modPower/1000 ./ (1-pLung) / rhoLung; % [1] eq.8: Pmod = d*(1-pLung) * rhoLung
@@ -125,7 +125,7 @@ elseif strcmp(pln.propHeterogeneity.sampling.method, 'poisson')
 %     ct.cube{1}(lungIdx) = samples / max(samples);
 end
 
-if strcmp(pln.propHeterogeneity.mode,'TOPAS') && strcmp(pln.propHeterogeneity.sampling.method, 'binomial') && ~contains(pln.propMC.materialConverter.addSection,'none')
+if strcmp(pln.propHeterogeneity.sampling.mode,'TOPAS') && strcmp(pln.propHeterogeneity.sampling.method, 'binomial') && ~contains(pln.propMC.materialConverter.addSection,'none')
     % only include different densities that are significantly different
     % (5th digit)
     lung = round(ct.cube{1}(lungIdx),3);

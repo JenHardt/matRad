@@ -230,13 +230,14 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                             
                             matRad_cfg.dispInfo('Calling TOPAS: %s\n',topasCall);
                             [status,cmdout] = system(topasCall,'-echo');
+                            cout = splitlines(string(cmdout));
                             if status == 0
                                 matRad_cfg.dispInfo('TOPAS simulation completed succesfully\n');
                             else
                                 if status == 139
-                                    matRad_cfg.dispError('TOPAS segmentation fault might be caused from an outdated TOPAS version or Linux distribution');
+                                    matRad_cfg.dispError('TOPAS segmentation fault: might be caused from an outdated TOPAS version or Linux distribution');
                                 else
-                                    matRad_cfg.dispError('TOPAS simulation exited with error code %d\n',status);
+                                    matRad_cfg.dispError('TOPAS simulation exited with error code %d\n "%s"',status,cout(2:end-1));
                                 end
                             end
                         end

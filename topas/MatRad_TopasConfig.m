@@ -1068,6 +1068,7 @@ classdef MatRad_TopasConfig < handle
                             end
                             
                             % write density correction
+                            fprintf(fID,'# -- Density correction\n');
                             fprintf(fID,['dv:Ge/Patient/DensityCorrection = %i',repmat(' %.6g',1,numel(densityCorrection.density)),' g/cm3\n'],numel(densityCorrection.density),densityCorrection.density);
                             fprintf(fID,['iv:Ge/Patient/SchneiderHounsfieldUnitSections = %i',repmat(' %g',1,numel(densityCorrection.unitSections)),'\n'],numel(densityCorrection.unitSections),densityCorrection.unitSections);
                             fprintf(fID,['uv:Ge/Patient/SchneiderDensityOffset = %i',repmat(' %g',1,numel(densityCorrection.offset)),'\n'],numel(densityCorrection.offset),densityCorrection.offset);
@@ -1076,7 +1077,7 @@ classdef MatRad_TopasConfig < handle
                             TOPASisFloat = mod(densityCorrection.factor,1)==0;
                             fprintf(fID,strjoin(['uv:Ge/Patient/SchneiderDensityFactor = %i',convertCharsToStrings(char('%1.01f '.*TOPASisFloat' + '%1.15g '.*~TOPASisFloat')'),'\n']),numel(densityCorrection.factor),densityCorrection.factor);
                             TOPASisFloat = mod(densityCorrection.factorOffset,1)==0;
-                            fprintf(fID,strjoin(['uv:Ge/Patient/SchneiderDensityFactorOffset = %i',convertCharsToStrings(char('%1.01f '.*TOPASisFloat' + '%1.15g '.*~TOPASisFloat')'),'\n\n']),numel(densityCorrection.factorOffset),densityCorrection.factorOffset);
+                            fprintf(fID,strjoin(['uv:Ge/Patient/SchneiderDensityFactorOffset = %i',convertCharsToStrings(char('%1.01f '.*TOPASisFloat' + '%1.15g '.*~TOPASisFloat')'),'\n']),numel(densityCorrection.factorOffset),densityCorrection.factorOffset);
                             %                         fprintf(fID,'uv:Ge/Patient/SchneiderDensityFactor = 8 0.001029700665188 0.000893 0.0 0.001169 0.000592 0.0005 0.0 0.0\n');
                             %                         fprintf(fID,'uv:Ge/Patient/SchneiderDensityFactorOffset = 8 1000. 0. 1000. 0. 0. -2000. 0. 0.0\n\n');
                             
@@ -1093,18 +1094,18 @@ classdef MatRad_TopasConfig < handle
                             HUToMaterial.sections = [densityCorrection.boundaries(1) HUToMaterial.sections densityCorrection.boundaries(2:end)];
                             % write HU to material sections
                             %                         fprintf(fID,'i:Ge/Patient/MinImagingValue = %d\n',densityCorrection.boundaries(1));
-                            fprintf(fID,['iv:Ge/Patient/SchneiderHUToMaterialSections = %i ',repmat('%d ',1,numel(HUToMaterial.sections)),'\n'],numel(HUToMaterial.sections),HUToMaterial.sections);
+                            fprintf(fID,['iv:Ge/Patient/SchneiderHUToMaterialSections = %i ',repmat('%d ',1,numel(HUToMaterial.sections)),'\n\n'],numel(HUToMaterial.sections),HUToMaterial.sections);
                             % load defined material based on materialConverter.HUToMaterial
                             
                             fname = fullfile(obj.thisFolder,filesep,obj.converterFolder,filesep,obj.infilenames.matConv_Schneider_definedMaterials.(obj.materialConverter.HUToMaterial));
                             materials = splitlines(fileread(fname));
                             switch obj.materialConverter.HUToMaterial
                                 case 'default'
-                                    fprintf(fID,'\n%s\n',materials{1:4});
+                                    fprintf(fID,'%s \n',materials{1:end-1});
                                     ExcitationEnergies = str2double(split(string(materials{end}(strfind(string(materials{end}),'=')+4:end-3))));
                                     if contains(obj.materialConverter.addSection,{'lung','sampledDensities'})
-                                        fprintf(fID,'uv:Ge/Patient/SchneiderMaterialsWeight%i = 5 0.10404040 0.75656566 0.03131313 0.10606061 0.00202020\n',length(materials)-1);
-                                        ExcitationEnergies = [ExcitationEnergies 75.3];
+                                        fprintf(fID,'uv:Ge/Patient/SchneiderMaterialsWeight%i = 5 0.10404040 0.75656566 0.03131313 0.10606061 0.00202020\n',length(materials)-2);
+                                        ExcitationEnergies = [ExcitationEnergies' 75.3];
                                     end
                                     fprintf(fID,['dv:Ge/Patient/SchneiderMaterialMeanExcitationEnergy = %i',repmat(' %.6g',1,numel(ExcitationEnergies)),' eV\n'],numel(ExcitationEnergies),ExcitationEnergies);
                                 case 'advanced'

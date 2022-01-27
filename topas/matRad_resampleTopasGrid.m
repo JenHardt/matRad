@@ -2,7 +2,7 @@ function [ctR,cst] = matRad_resampleTopasGrid(ct,cst,pln,stf)
 matRad_cfg = MatRad_Config.instance();
 
 if isfield(ct,'modulated') && ct.modulated
-    pln.propDoseCalc.useGivenEqDensityCube = 1;
+    pln.propDoseCalc.useGivenEqDensityCube = true;
 end
 matRad_calcDoseInit;
 
