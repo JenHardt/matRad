@@ -1,4 +1,4 @@
-function dij = matRad_calcParticleDoseMCsquare(ct,stf,pln,cst,nCasePerBixel,calcDoseDirect)
+function dij = matRad_calcParticleDoseMCsquare(ct,stf,pln,cst,calcDoseDirect)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad MCsquare Monte Carlo proton dose calculation wrapper
 %
@@ -9,9 +9,7 @@ function dij = matRad_calcParticleDoseMCsquare(ct,stf,pln,cst,nCasePerBixel,calc
 %   ct:                         matRad ct struct
 %   stf:                        matRad steering information struct
 %   pln:                        matRad plan meta information struct
-%   cst:                        matRad cst struct
-%   nCasePerBixel               number of histories per beamlet (nCasePerBixel > 1),
-%                               max stat uncertainity (0 < nCasePerBixel < 1)
+%   cst:                        matRad cst struct            
 %   calcDoseDirect:             binary switch to enable forward dose
 %                               calculation
 % output
@@ -35,8 +33,14 @@ function dij = matRad_calcParticleDoseMCsquare(ct,stf,pln,cst,nCasePerBixel,calc
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
+global matRad_cfg;
 matRad_cfg = MatRad_Config.instance();
+pln.propMC.calcMC = true;
+pln = matRad_cfg.loadDefaultParam(pln);
+
+if nargin < 5
+    calcDoseDirect = false;
+end
 
 % initialize waitbar
 figureWait = waitbar(0,'calculate dose influence matrix with MCsquare...');
@@ -48,29 +52,12 @@ if ~strcmp(pln.radiationMode,'protons')
     matRad_cfg.dispError('Wrong radiation modality . MCsquare only supports protons!');    
 end
 
-if nargin < 5
-    % set number of particles simulated per pencil beam
-    nCasePerBixel = matRad_cfg.propMC.MCsquare_defaultHistories;
-    matRad_cfg.dispInfo('Using default number of Histories per Bixel: %d\n',nCasePerBixel);
-end
 % switch between either using max stat uncertainity or total number of
 % cases
-if (nCasePerBixel < 1)
+if (pln.propMC.histories < 1)
     maxStatUncertainty = true;
 else
     maxStatUncertainty = false;
-end
-
-if nargin < 6
-    calcDoseDirect = false;
-end
-
-if isfield(pln,'propMC') && isfield(pln.propMC,'outputVariance')
-    matRad_cfg.dispWarning('Variance scoring for MCsquare not yet supported.');
-end
-
-if ~isfield(pln,'propDoseCalc') || ~isfield(pln.propDoseCalc,'calcLET') 
-    pln.propDoseCalc.calcLET = matRad_cfg.propDoseCalc.defaultCalcLET;
 end
 
 if isfield(pln,'propMC') && isfield(pln.propMC,'config')        
@@ -106,7 +93,7 @@ if isfield(pln,'propMC') && isfield(pln.propMC,'config')
         end
     end
 else
-    MCsquareConfig = MatRad_MCsquareConfig
+    MCsquareConfig = MatRad_MCsquareConfig;
 end
 
 env = matRad_getEnvironment();
@@ -263,7 +250,7 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                 MCsquareConfig.CT_File       = 'MC2patientCT.mhd';
                 MCsquareConfig.Num_Threads   = nbThreads;
                 MCsquareConfig.RNG_Seed      = 1234;
-                MCsquareConfig.Num_Primaries = nCasePerBixel;
+                MCsquareConfig.Num_Primaries = pln.propMC.histories;
                 
 
                 % turn simulation of individual beamlets

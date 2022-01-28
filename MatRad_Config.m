@@ -178,6 +178,7 @@ classdef MatRad_Config < handle
 
             obj.propMC.direct_defaultHistories = 1e7;
             obj.propMC.particles_defaultHistories = 2e4;
+            obj.propMC.MCsquare_defaultHistories = 1e8;
 
             %obj.propMC.default_photon_engine = 'ompMC';
             obj.propMC.default_proton_engine = 'MCsquare';
@@ -371,6 +372,48 @@ classdef MatRad_Config < handle
                     end
                 end
 
+            end
+
+            % Monte Carlo settings
+            if strcmp(pln.propHeterogeneity.sampling.mode,'TOPAS')
+                pln.propMC.engine = 'TOPAS';
+            end
+            if isfield(pln,'propMC')
+                if isfield(pln.propMC,'outputVariance')
+                    obj.dispWarning('Variance scoring for TOPAS not yet supported.');
+                end
+
+                if strcmp(pln.radiationMode,'protons')
+                    engines = {'TOPAS','MCsquare'};
+                    if ~isfield(pln.propMC,'engine') || ~any(strcmp(pln.propMC.engine,engines))
+                        obj.dispInfo('Using default proton MC engine "%s"\n',obj.propMC.default_proton_engine);
+                        pln.propMC.engine = obj.propMC.default_proton_engine;
+                    end
+
+
+                elseif strcmp(pln.radiationMode,'carbon') || strcmp(pln.radiationMode,'helium')
+                    if ~isfield(pln.propMC,'engine')
+                        pln.propMC.engine = obj.propMC.default_carbon_engine;
+                    end
+
+                else
+                    obj.dispError('MC only implemented for protons, helium and carbon ions (only TOPAS).');
+                end
+            end
+            switch pln.propMC.engine
+                % number of histories per beamlet (nCasePerBixel > 1),
+                % max stat uncertainity (0 < nCasePerBixel < 1)
+                % set number of particles simulated per pencil beam
+                case 'MCsquare'
+                    if ~isfield(pln.propMC,'histories') || (pln.propMC.histories==obj.propMC.MCsquare_defaultHistories)
+                        pln.propMC.histories = obj.propMC.MCsquare_defaultHistories;
+                        obj.dispInfo('Using default number of Histories per Bixel: %d\n',pln.propMC.histories);
+                    end
+                case 'TOPAS'
+                    if ~isfield(pln.propMC,'histories') || (pln.propMC.histories==obj.propMC.particles_defaultHistories)
+                        pln.propMC.histories = obj.propMC.particles_defaultHistories;
+                        obj.dispInfo('Using default number of Histories per Bixel: %d\n',pln.propMC.histories);
+                    end
             end
         end
     end

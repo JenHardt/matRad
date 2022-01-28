@@ -1,12 +1,12 @@
-function resultGUI = matRad_calcDoseDirectMC(ct,stf,pln,cst,w,nHistories,exportForExternalCalculation)
-% matRad function to bypass dij calculation for MC dose calculation 
+function resultGUI = matRad_calcDoseDirectMC(ct,stf,pln,cst,w)
+% matRad function to bypass dij calculation for MC dose calculation
 % matRad dose calculation wrapper for MC dose calculation algorithms
 % bypassing dij calculation for MC dose calculation algorithms.
-% 
+%
 % call
 %   resultGUI = matRad_calcDoseDirecMC(ct,stf,pln,cst)
 %   resultGUI = matRad_calcDoseDirecMC(ct,stf,pln,cst,w)
-%   resultGUI = matRad_calcDoseDirectMC(ct,stf,pln,cst,w,nHistories)
+%   resultGUI = matRad_calcDoseDirectMC(ct,stf,pln,cst,w)
 %
 % input
 %   ct:         ct cube
@@ -15,7 +15,6 @@ function resultGUI = matRad_calcDoseDirectMC(ct,stf,pln,cst,w,nHistories,exportF
 %   cst:        matRad cst struct
 %   w:          (optional, if no weights available in stf): bixel weight
 %               vector
-%   nHistories: (optional) number of histories
 %
 % output
 %   resultGUI:  matRad result struct
@@ -25,34 +24,27 @@ function resultGUI = matRad_calcDoseDirectMC(ct,stf,pln,cst,w,nHistories,exportF
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% Copyright 2019 the matRad development team. 
-% 
-% This file is part of the matRad project. It is subject to the license 
-% terms in the LICENSE file found in the top-level directory of this 
-% distribution and at https://github.com/e0404/matRad/LICENSES.txt. No part 
-% of the matRad project, including this file, may be copied, modified, 
-% propagated, or distributed except according to the terms contained in the 
+% Copyright 2019 the matRad development team.
+%
+% This file is part of the matRad project. It is subject to the license
+% terms in the LICENSE file found in the top-level directory of this
+% distribution and at https://github.com/e0404/matRad/LICENSES.txt. No part
+% of the matRad project, including this file, may be copied, modified,
+% propagated, or distributed except according to the terms contained in the
 % LICENSE file.
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
+global matRad_cfg;
 matRad_cfg =  MatRad_Config.instance();
+pln.propMC.calcMC = true;
+pln = matRad_cfg.loadDefaultParam(pln);
 
 calcDoseDirect = true;
 
-if nargin < 6 || ~exist('nHistories')
-  nHistories = matRad_cfg.propMC.direct_defaultHistories;
-  matRad_cfg.dispInfo('Using default number of Histories: %d\n',nHistories);
-end
-
-if nargin < 7
-    exportForExternalCalculation = false;
-end
-
 % check if weight vector is available, either in function call or in stf - otherwise dose calculation not possible
 if ~exist('w','var') && ~isfield([stf.ray],'weight')
-     matRad_cfg.dispError('No weight vector available. Please provide w or add info to stf');
+    matRad_cfg.dispError('No weight vector available. Please provide w or add info to stf');
 end
 
 % copy bixel weight vector into stf struct
@@ -79,30 +71,15 @@ else % weights need to be in stf!
                 w(counter) = stf(i).ray(j).weight(k);
             end
         end
-    end    
-end       
+    end
+end
 
 % dose calculation
-if strcmp(pln.radiationMode,'protons')
-    engines = {'TOPAS','MCsquare'};
-    if ~isfield(pln,'propMC') || ~isfield(pln.propMC,'proton_engine') || ~any(strcmp(pln.propMC.proton_engine,engines))
-        matRad_cfg.dispInfo('Using default proton MC engine "%s"\n',matRad_cfg.propMC.default_proton_engine);
-        pln.propMC.proton_engine = matRad_cfg.propMC.default_proton_engine;
-    end
-    
-    switch pln.propMC.proton_engine
-        case 'MCsquare'
-            dij = matRad_calcParticleDoseMCsquare(ct,stf,pln,cst,nHistories,calcDoseDirect);
-        case 'TOPAS'
-            dij = matRad_calcParticleDoseMCtopas(ct,stf,pln,cst,nHistories,calcDoseDirect,exportForExternalCalculation);
-    end
-elseif strcmp(pln.radiationMode,'carbon') || strcmp(pln.radiationMode,'helium')
-    if ~isfield(pln,'propMC') || ~isfield(pln.propMC,'carbon_engine')
-        pln.propMC.carbon_engine = matRad_cfg.propMC.default_carbon_engine;
-    end
-        dij = matRad_calcParticleDoseMCtopas(ct,stf,pln,cst,nHistories,calcDoseDirect,exportForExternalCalculation);
-else
-    matRad_cfg.dispError('MC only implemented for protons and carbon ions (only TOPAS).');
+switch pln.propMC.engine
+    case 'MCsquare'
+        dij = matRad_calcParticleDoseMCsquare(ct,stf,pln,cst,calcDoseDirect);
+    case 'TOPAS'
+        dij = matRad_calcParticleDoseMCtopas(ct,stf,pln,cst,calcDoseDirect);
 end
 
 %dij.numOfBeams = size(stf,2);
@@ -110,24 +87,24 @@ dij.beamNum = [1:size(stf,2)]';
 
 % calc resulting dose
 if pln.multScen.totNumScen == 1
-    % calculate cubes; use uniform weights here, weighting with actual fluence 
+    % calculate cubes; use uniform weights here, weighting with actual fluence
     % already performed in dij construction
     resultGUI    = matRad_calcCubes(ones(dij.numOfBeams,1),dij,1);
-    
-% calc individual scenarios    
-else    
-   Cnt          = 1;
-   ixForOpt     = find(~cellfun(@isempty, dij.physicalDose))';
-   for i = ixForOpt
-      tmpResultGUI = matRad_calcCubes(ones(size(dij.physicalDose{i},2),1),dij,i);
-      if i == 1
-         resultGUI.([pln.bioParam.quantityVis]) = tmpResultGUI.(pln.bioParam.quantityVis);
-      end
-      resultGUI.([pln.bioParam.quantityVis '_' num2str(Cnt,'%d')]) = tmpResultGUI.(pln.bioParam.quantityVis);
-      resultGUI.phaseDose{1,i} = tmpResultGUI.(pln.bioParam.quantityVis);
-      Cnt = Cnt + 1;
-   end 
-    
+
+    % calc individual scenarios
+else
+    Cnt          = 1;
+    ixForOpt     = find(~cellfun(@isempty, dij.physicalDose))';
+    for i = ixForOpt
+        tmpResultGUI = matRad_calcCubes(ones(size(dij.physicalDose{i},2),1),dij,i);
+        if i == 1
+            resultGUI.([pln.bioParam.quantityVis]) = tmpResultGUI.(pln.bioParam.quantityVis);
+        end
+        resultGUI.([pln.bioParam.quantityVis '_' num2str(Cnt,'%d')]) = tmpResultGUI.(pln.bioParam.quantityVis);
+        resultGUI.phaseDose{1,i} = tmpResultGUI.(pln.bioParam.quantityVis);
+        Cnt = Cnt + 1;
+    end
+
 end
 
 if pln.multScen.totNumScen ~= 1
@@ -137,7 +114,7 @@ if pln.multScen.totNumScen ~= 1
     end
 end
 % remember original fluence weights
-resultGUI.w  = w; 
+resultGUI.w  = w;
 
 
 

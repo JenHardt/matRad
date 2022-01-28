@@ -41,11 +41,11 @@ if nargin < 6
     calcDoseDirect = false;
 end
 
-if ~isfield(pln,'propMC') || ~isfield(pln.propMC,'proton_engine')
+if ~isfield(pln,'propMC') || ~isfield(pln.propMC,'engine')
     matRad_cfg.dispInfo('Using default proton MC engine "%s"\n',matRad_cfg.propMC.default_proton_engine);
     engine = matRad_cfg.propMC.default_proton_engine;
 else
-    engine = pln.propMC.proton_engine;
+    engine = pln.propMC.engine;
 end
 
 

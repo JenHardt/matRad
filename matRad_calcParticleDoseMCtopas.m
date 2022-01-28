@@ -1,19 +1,17 @@
-function dij = matRad_calcParticleDoseMCtopas(ct,stf,pln,cst,nCasePerBixel,calcDoseDirect,exportForExternalCalculation)
+function dij = matRad_calcParticleDoseMCtopas(ct,stf,pln,cst,calcDoseDirect)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad TOPAS Monte Carlo proton dose calculation wrapper
 %   This calls a TOPAS installation (not included in matRad due to
 %   licensing model of TOPAS) for MC simulation
 %
 % call
-%   dij = matRad_calcParticleDoseMCtopas(ct,stf,pln,cst,nCasePerBixel,calcDoseDirect)
+%   dij = matRad_calcParticleDoseMCtopas(ct,stf,pln,cst,calcDoseDirect)
 %
 % input
 %   ct:                         matRad ct struct
 %   stf:                        matRad steering information struct
 %   pln:                        matRad plan meta information struct
 %   cst:                        matRad cst struct
-%   nCasePerBixel               number of histories per beamlet (nCasePerBixel > 1),
-%                               max stat uncertainity (0 < nCasePerBixel < 1)
 %   calcDoseDirect:             binary switch to enable forward dose
 %                               calcualtion
 % output
@@ -35,24 +33,13 @@ function dij = matRad_calcParticleDoseMCtopas(ct,stf,pln,cst,nCasePerBixel,calcD
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+global matRad_cfg;
 matRad_cfg = MatRad_Config.instance();
+pln.propMC.calcMC = true;
+pln = matRad_cfg.loadDefaultParam(pln);
 
 if nargin < 5
-    % set number of particles simulated per pencil beam
-    nCasePerBixel = matRad_cfg.propMC.particles_defaultHistories;
-    matRad_cfg.dispInfo('Using default number of Histories per Bixel: %d\n',nCasePerBixel);
-end
-
-if nargin < 6
     calcDoseDirect = false;
-end
-
-if nargin < 7
-    exportForExternalCalculation = false;
-end
-
-if isfield(pln,'propMC') && isfield(pln.propMC,'outputVariance')
-    matRad_cfg.dispWarning('Variance scoring for TOPAS not yet supported.');
 end
 
 if isfield(pln,'propMC') && isfield(pln.propMC,'config')        
@@ -138,11 +125,11 @@ topasConfig.radiationMode = stf.radiationMode;
 machine.data = matRad_overrideBaseData(machine.data);
 topasBaseData = MatRad_TopasBaseData(machine,stf);%,TopasConfig);
 
-topasConfig.numHistories = nCasePerBixel;
+topasConfig.numHistories = pln.propMC.histories;
 if isfield(pln.propMC,'numOfRuns')
     topasConfig.numOfRuns = pln.propMC.numOfRuns;
 end
-if exportForExternalCalculation
+if pln.propMC.externalCalculation
     if isfield(pln,'patientID')
         topasConfig.workingDir = [topasConfig.workingDir pln.radiationMode filesep pln.patientID '_'];
     end
@@ -206,7 +193,7 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                 % Run simulation for current scenario
                 cd(topasConfig.workingDir);
                               
-                if exportForExternalCalculation
+                if pln.propMC.externalCalculation
                     save('dij.mat','dij')
                     save('weights.mat','w')
                     matRad_cfg.dispInfo('TOPAS simulation skipped for external calculation\n');
