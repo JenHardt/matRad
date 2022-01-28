@@ -36,11 +36,11 @@ if nargin < 3 && nargout > 1
     matRad_cfg.dispError('stf is missing as input')
 end
 
-% set threshold for spot removal to 3% of the maximum weight.
+% set threshold for spot removal to 3% of the mean weight.
 if ~exist('thres','var')
     thres = 0.03;
 end
-newSpots = w>thres*max(w);
+newSpots = w>thres*mean(w);
 
 if ((sum(newSpots) ~= numel(w)) && sum(newSpots) ~= dij.totalNumOfBixels) && any(size(w)>1)
     dij.cutWeights = w(newSpots);
@@ -90,7 +90,7 @@ if ((sum(newSpots) ~= numel(w)) && sum(newSpots) ~= dij.totalNumOfBixels) && any
     
     dij.totalNumOfRays = sum(dij.numOfRaysPerBeam);
     dij.numOfRemovedSpots = sum(~newSpots);
-    matRad_cfg.dispWarning([num2str(sum(~newSpots)),'/',num2str(numel(newSpots)) ,' spots have been removed below ',num2str(100*thres),'%.\n'])
+    matRad_cfg.dispWarning([num2str(sum(~newSpots)),'/',num2str(numel(newSpots)) ,' spots have been removed below ',num2str(100*thres),'% of the mean weight.\n'])
 else
     matRad_cfg.dispWarning('no spots have been removed.')
     dij.cutWeights = w;
