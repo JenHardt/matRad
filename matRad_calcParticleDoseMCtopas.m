@@ -125,7 +125,11 @@ topasConfig.radiationMode = stf.radiationMode;
 machine.data = matRad_overrideBaseData(machine.data);
 topasBaseData = MatRad_TopasBaseData(machine,stf);%,TopasConfig);
 
-topasConfig.numHistories = pln.propMC.histories;
+if isfield(pln.propHeterogeneity,'sampling') && isfield(pln.propHeterogeneity.sampling,'histories')
+    topasConfig.numHistories = pln.propHeterogeneity.sampling.histories;
+else
+    topasConfig.numHistories = pln.propMC.histories;
+end
 if isfield(pln.propMC,'numOfRuns')
     topasConfig.numOfRuns = pln.propMC.numOfRuns;
 end

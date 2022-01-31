@@ -90,7 +90,8 @@ for i = 1:samples
         case 'TOPAS'
             pln.propMC.proton_engine = 'TOPAS';
             pln.propMC.numOfRuns = 1;
-            resultGUI_mod = matRad_calcDoseDirectMC(ct_mod,stf,pln,cstR,weights,histories/samples,calcExternal);
+            pln.propHeterogeneity.sampling.histories = histories/samples;
+            resultGUI_mod = matRad_calcDoseDirectMC(ct_mod,stf,pln,cstR,weights);
 
             if ~calcExternal
                 %     resultGUI.(['physicalDose',num2str(s)]) = resultGUI.(['physicalDose',num2str(s)]) + resultGUI_mod.physicalDose/s;
