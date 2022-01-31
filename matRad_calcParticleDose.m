@@ -73,7 +73,7 @@ end
 if pln.propHeterogeneity.calcHetero
     if pln.bioParam.bioOpt && ~isfield(machine.data,'alpha')
         matRad_cfg.dispInfo('Calculating alpha-beta curves for baseData ... ');
-        machine.data = matRad_getAlphaBetaCurves(cst,pln,machine.data);
+        machine.data = matRad_getAlphaBetaCurves(machine,pln,cst);
         matRad_cfg.dispInfo('Done!\n');
     end
     

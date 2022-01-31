@@ -1,4 +1,4 @@
-function [machine] = matRad_getAlphaBetaCurves(machine,varargin)
+function [machine] = matRad_getAlphaBetaCurves(machine,pln,varargin)
 % matRad alpha beta curve calculation tool
 %
 % call
@@ -35,7 +35,7 @@ end
 
 overrideAB = false;
 if ~isempty(varargin)
-    for i = 1:nargin-1
+    for i = 1:nargin-2
         if iscell(varargin{i})
             cst = varargin{i};
         elseif ischar(varargin{i})
