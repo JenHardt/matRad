@@ -113,7 +113,10 @@ if pln.multScen.totNumScen ~= 1
         resultGUI.accPhysicalDose = resultGUI.accPhysicalDose + resultGUI.phaseDose{i};
     end
 end
-% remember original fluence weights
+% remember original fluence weights and histories, if applicable
+if isfield(pln.propMC,'histories')
+    resultGUI.historiesMC = pln.propMC.histories;
+end
 resultGUI.w  = w;
 
 
