@@ -505,6 +505,7 @@ classdef MatRad_TopasConfig < handle
                 cutNumOfBixel = 0;
                 nBeamParticlesTotal(beamIx) = 0;
                 
+                dataTOPAS = [];
                 collectBixelIdx = [];
                 
                 %Loop over rays and then over spots on ray
