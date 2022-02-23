@@ -156,8 +156,8 @@ classdef MatRad_Config < handle
             obj.propStf.defaultAddMargin = true; %expand target for beamlet finding
 
             obj.propDoseCalc.defaultResolution = struct('x',3,'y',3,'z',3); %[mm]
-            obj.propDoseCalc.defaultLateralCutoff = 0.995; %[rel.]
-            obj.propDoseCalc.defaultGeometricCutoff = 50; %[mm]
+            obj.propDoseCalc.defaultLateralCutOff = 0.995; %[rel.]
+            obj.propDoseCalc.defaultGeometricCutOff = 50; %[mm]
             obj.propDoseCalc.defaultSsdDensityThreshold = 0.05; %[rel.]
             obj.propDoseCalc.defaultUseGivenEqDensityCube = false; %Use the given density cube ct.cube and omit conversion from cubeHU.
             obj.propDoseCalc.defaultIgnoreOutsideDensities = true; %Ignore densities outside of cst contours
@@ -185,7 +185,9 @@ classdef MatRad_Config < handle
             obj.propMC.default_carbon_engine = 'TOPAS';
 
             % Default settings for TOPAS
+            obj.propMC.defaultExternalCalculation = false;
             obj.propMC.topas_defaultNumBatches = 5;
+            obj.propMC.defaultCalcDij = false;
 
             obj.propHeterogeneity.defaultType = 'complete'; % 'depthBased','voxelwise'
             obj.propHeterogeneity.defaultCalcHetero = true;
@@ -216,8 +218,8 @@ classdef MatRad_Config < handle
             obj.propStf.defaultAddMargin = true; %expand target for beamlet finding
 
             obj.propDoseCalc.defaultResolution = struct('x',5,'y',6,'z',7); %[mm]
-            obj.propDoseCalc.defaultGeometricCutoff = 20;
-            obj.propDoseCalc.defaultLateralCutoff = 0.8;
+            obj.propDoseCalc.defaultGeometricCutOff = 20;
+            obj.propDoseCalc.defaultLateralCutOff = 0.8;
 
             obj.propDoseCalc.defaultSsdDensityThreshold = 0.05;
             obj.propDoseCalc.defaultUseGivenEqDensityCube = false; %Use the given density cube ct.cube and omit conversion from cubeHU.
@@ -410,6 +412,9 @@ classdef MatRad_Config < handle
                         obj.dispInfo('Using default number of Histories per Bixel: %d\n',pln.propMC.histories);
                     end
                 case 'TOPAS'
+                    if ~isfield(pln.propMC,'externalCalculation')
+                        pln.propMC.externalCalculation = obj.propMC.defaultExternalCalculation;
+                    end
                     if ~isfield(pln.propMC,'histories') || (pln.propMC.histories==obj.propMC.particles_defaultHistories)
                         pln.propMC.histories = obj.propMC.particles_defaultHistories;
                         obj.dispInfo('Using default number of Histories per Bixel: %d\n',pln.propMC.histories);

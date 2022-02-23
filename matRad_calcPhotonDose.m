@@ -56,7 +56,7 @@ set(figureWait,'pointer','watch');
 pln = matRad_cfg.loadDefaultParam(pln);
 
 % set lateral cutoff value
-lateralCutoff = pln.propDoseCalc.geometriCutoff; % [mm]
+lateralCutOff = pln.propDoseCalc.geometriCutOff; % [mm]
 
 % 0 if field calc is bixel based, 1 if dose calc is field based
 isFieldBasedDoseCalc = strcmp(num2str(pln.propStf.bixelWidth),'field');
@@ -109,7 +109,7 @@ if ~isFieldBasedDoseCalc
 end
 
 % get kernel size and distances
-kernelLimit = ceil(lateralCutoff/intConvResolution);
+kernelLimit = ceil(lateralCutOff/intConvResolution);
 [kernelX, kernelZ] = meshgrid(-kernelLimit*intConvResolution: ...
    intConvResolution: ...
    (kernelLimit-1)*intConvResolution);
@@ -124,7 +124,7 @@ kernelConvSize = 2*kernelConvLimit;
 
 % define an effective lateral cutoff where dose will be calculated. note
 % that storage within the influence matrix may be subject to sampling
-pln.propDoseCalc.effectiveLateralCutoff = lateralCutoff + fieldWidth/2;
+pln.propDoseCalc.effectiveLateralCutOff = lateralCutOff + fieldWidth/2;
 
 % book keeping - this is necessary since pln is not used in optimization or
 % matRad_calcCubes
@@ -268,7 +268,7 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                             stf(i).ray(j).targetPoint_bev, ...
                             machine.meta.SAD, ...
                             find(~isnan(radDepthVdoseGrid{ctScen})), ...
-                            effectiveLateralCutoff);
+                            effectiveLateralCutOff);
                         
                         % empty bixels may happen during recalculation of error
                         % scenarios -> skip to next bixel

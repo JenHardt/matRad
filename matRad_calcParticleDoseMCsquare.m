@@ -184,7 +184,7 @@ nbThreads = 0;
 
 % set relative dose cutoff for storage in dose influence matrix, we use the
 % default value for the lateral cutoff here
-relDoseCutoff = 1 - matRad_cfg.propDoseCalc.defaultLateralCutOff;
+relDoseCutOff = 1 - matRad_cfg.propDoseCalc.defaultLateralCutOff;
 % set absolute calibration factor
 % convert from eV/g/primary to Gy 1e6 primaries
 absCalibrationFactorMC2 = 1.602176e-19 * 1.0e+9;
@@ -260,7 +260,7 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                 % turn on sparse output
                 MCsquareConfig.Dose_Sparse_Output = ~calcDoseDirect;
                 % set threshold of sparse matrix generation
-                MCsquareConfig.Dose_Sparse_Threshold = relDoseCutoff;
+                MCsquareConfig.Dose_Sparse_Threshold = relDoseCutOff;
                 
                 %Matrices for LET
                 if pln.propDoseCalc.calcLET

@@ -89,6 +89,10 @@ dij.beamNum = [1:size(stf,2)]';
 if pln.multScen.totNumScen == 1
     % calculate cubes; use uniform weights here, weighting with actual fluence
     % already performed in dij construction
+    if size(dij.physicalDose{1},2) ~= pln.propStf.numOfBeams
+        matRad_cfg.dispWarning('Number of beams stored not the same as size of dij. Using singular weight for MC');
+        dij.numOfBeams = size(dij.physicalDose{1},2);
+    end
     resultGUI    = matRad_calcCubes(ones(dij.numOfBeams,1),dij,1);
 
     % calc individual scenarios

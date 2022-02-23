@@ -73,7 +73,7 @@ end
 if pln.propHeterogeneity.calcHetero
     if pln.bioParam.bioOpt && ~isfield(machine.data,'alpha')
         matRad_cfg.dispInfo('Calculating alpha-beta curves for baseData ... ');
-        machine.data = matRad_getAlphaBetaCurves(machine,pln,cst);
+        machine = matRad_getAlphaBetaCurves(machine,pln,cst);
         matRad_cfg.dispInfo('Done!\n');
     end
     
@@ -228,7 +228,7 @@ if pln.bioParam.bioOpt
 end
 
 % lateral cutoff for raytracing and geo calculations
-pln.propDoseCalc.effectiveLateralCutoff = pln.propDoseCalc.geometricCutoff;
+pln.propDoseCalc.effectiveLateralCutOff = pln.propDoseCalc.geometricCutOff;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %loop over all shift scenarios
@@ -256,7 +256,7 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
         % Calculate radiological depth cube for heterogeneity correction
         if pln.propHeterogeneity.calcHetero
             matRad_cfg.dispInfo('matRad: calculate radiological depth cube for heterogeneity correction...');
-            heteroCorrDepthV = matRad_rayTracing(stf(i),calcHeteroCorrStruct,VctGrid,rot_coordsV,pln.propDoseCalc.effectiveLateralCutoff);
+            heteroCorrDepthV = matRad_rayTracing(stf(i),calcHeteroCorrStruct,VctGrid,rot_coordsV,pln.propDoseCalc.effectiveLateralCutOff);
             % HETERO interpolate hetero depth cube to dose grid resolution
             heteroCorrDepthV = matRad_interpRadDepth...
                 (ct,VctGrid,VdoseGrid,dij.doseGrid.x,dij.doseGrid.y,dij.doseGrid.z,heteroCorrDepthV);
@@ -277,7 +277,7 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                 
                 energyIx = max(round2(stf(i).ray(j).energy,4)) == round2([machine.data.energy],4);
                 
-                maxLateralCutoffDoseCalc = max(machine.data(energyIx).LatCutOff.CutOff);
+                maxLateralCutOffDoseCalc = max(machine.data(energyIx).LatCutOff.CutOff);
                 
                 % Ray tracing for beam i and ray j
                 [ix,radialDist_sq] = matRad_calcGeoDists(rot_coordsVdoseGrid, ...
@@ -285,7 +285,7 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                     stf(i).ray(j).targetPoint_bev, ...
                     machine.meta.SAD, ...
                     find(~isnan(radDepthVdoseGrid{1})), ...
-                    maxLateralCutoffDoseCalc);
+                    maxLateralCutOffDoseCalc);
                 
                 if pln.propHeterogeneity.calcHetero
                     heteroCorrDepths = heteroCorrDepthV{1}(ix);
@@ -362,9 +362,9 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                                 
                                 
                                 % find depth depended lateral cut off
-                                if pln.propDoseCalc.lateralCutoff >= 1
+                                if pln.propDoseCalc.lateralCutOff >= 1
                                     currIx = radDepths <= machine.data(energyIx).depths(end) + offsetRadDepth;
-                                elseif pln.propDoseCalc.lateralCutoff < 1 && pln.propDoseCalc.lateralCutoff > 0
+                                elseif pln.propDoseCalc.lateralCutOff < 1 && pln.propDoseCalc.lateralCutOff > 0
                                     % perform rough 2D clipping
                                     currIx = radDepths <= machine.data(energyIx).depths(end) + offsetRadDepth & ...
                                         radialDist_sq <= max(machine.data(energyIx).LatCutOff.CutOff.^2);
