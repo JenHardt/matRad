@@ -87,7 +87,8 @@ classdef MatRad_TopasConfig < handle
         %         scoreReportQuantity = {'Sum','Standard_Deviation'};
         bioParam = struct( 'PrescribedDose',2,...
             'AlphaX',0.1,...
-            'BetaX',0.05);
+            'BetaX',0.05,...
+            'SimultaneousExposure','"True"');
         
         %Physics
         electronProductionCut = 0.5; %in mm
@@ -335,6 +336,7 @@ classdef MatRad_TopasConfig < handle
                 % write biological scorer components.
                 obj.matRad_cfg.dispDebug('Writing Biologial Scorer components.\n');
                 fprintf(fID,'d:Sc/PrescribedDose = %.4f Gy\n',obj.bioParam.PrescribedDose);
+                fprintf(fID,'b:Sc/SimultaneousExposure = %s\n',obj.bioParam.SimultaneousExposure);
                 fprintf(fID,'d:Sc/AlphaX = %.4f /Gy\n',obj.bioParam.AlphaX);
                 fprintf(fID,'d:Sc/BetaX = %.4f /Gy2\n',obj.bioParam.BetaX);
                 fprintf(fID,'d:Sc/AlphaBetaX = %.4f Gy\n',obj.bioParam.AlphaX/obj.bioParam.BetaX);

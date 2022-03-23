@@ -1,7 +1,6 @@
 
 # Wedenberg proton RBE scorer
 sv:Sc/CellLines     		= 1 "CellLineGeneric"
-b:Sc/SimultaneousExposure 	= "True"
 
 s:Sc/WedenbergAlpha/Quantity                  = "RBE_Wedenberg"
 s:Sc/WedenbergAlpha/Component                 = "Patient"
