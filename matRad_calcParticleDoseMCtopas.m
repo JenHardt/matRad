@@ -135,9 +135,9 @@ if isfield(pln.propMC,'numOfRuns')
 end
 if pln.propMC.externalCalculation
     if isfield(pln,'patientID')
-        topasConfig.workingDir = [topasConfig.workingDir pln.radiationMode filesep pln.patientID '_'];
+        topasConfig.workingDir = [topasConfig.workingDir pln.radiationMode filesep pln.patientID filesep pln.patientID '_'];
     end
-    topasConfig.workingDir = [topasConfig.workingDir pln.machine,'_',pln.radiationMode];
+    topasConfig.workingDir = [topasConfig.workingDir pln.radiationMode,'_',pln.machine,'_',datestr(now, 'dd-mm-yy')];
     if isfield(ctR,'sampleIdx')
         topasConfig.workingDir = [topasConfig.workingDir '_' num2str(ctR.sampleIdx,'%02.f') filesep];
     end

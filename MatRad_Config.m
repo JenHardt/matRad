@@ -376,6 +376,11 @@ classdef MatRad_Config < handle
 
             end
 
+            % Turn off modulateBioDose in case no suitable RBE model is used
+            if isfield(pln,'bioParam') && ~pln.bioParam.bioOpt
+                pln.propHeterogeneity.modulateBioDose = 0;
+            end
+
             % Monte Carlo settings
             if strcmp(pln.propHeterogeneity.sampling.mode,'TOPAS')
                 pln.propMC.engine = 'TOPAS';

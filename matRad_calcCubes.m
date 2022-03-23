@@ -40,7 +40,7 @@ resultGUI.w = w;
 if all(w == 1)
     for i = 1:dij.numOfBeams
         beamInfo(i).suffix = ['_beam', num2str(i)];
-        beamInfo(i).logIx  = 1;
+        beamInfo(i).logIx  = ([1:dij.numOfBeams]' == i);
     end
     resultGUI.w = ones(dij.numOfBeams,1);
 else
@@ -126,9 +126,9 @@ if isfield(dij,'MC_tallies')
             tallyCut = strsplit(tally,'_');
             if size(tallyCut,2) > 1
                 beamNum = str2num(cell2mat(regexp(tally,'\d','Match')));
-                resultGUI.(tally) = reshape(full(dij.(tallyCut{1}){scenNum,beamNum}),dij.doseGrid.dimensions);
+                resultGUI.(tally) = reshape(full(dij.(tallyCut{1}){scenNum}(:,beamNum)),dij.doseGrid.dimensions);
             else
-                resultGUI.(tally) = reshape(full(dij.(tally){scenNum}),dij.doseGrid.dimensions);
+                resultGUI.(tally) = reshape(full(dij.(tally){scenNum} * wBeam),dij.doseGrid.dimensions);
             end
         end
     end
