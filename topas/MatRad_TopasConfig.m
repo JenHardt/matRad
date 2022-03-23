@@ -633,6 +633,14 @@ classdef MatRad_TopasConfig < handle
                 fileID = fopen(fullfile(obj.workingDir,fieldSetupFileName),'w');
                 obj.writeFieldHeader(fileID,beamIx);
                 
+                % NozzleAxialDistance
+                fprintf(fileID,'d:Ge/Nozzle/TransZ = -%f mm\n', nozzleToAxisDistance);
+                if obj.pencilBeamScanning
+                    fprintf(fileID,'d:Ge/Nozzle/RotX = Tf/Beam/AngleX/Value rad\n');
+                    fprintf(fileID,'d:Ge/Nozzle/RotY = Tf/Beam/AngleY/Value rad\n');
+                    fprintf(fileID,'d:Ge/Nozzle/RotZ = 0.0 rad\n\n');
+                end
+
                 %Write modality specific info
                 switch stf(beamIx).radiationMode
                     case 'protons'
@@ -806,15 +814,6 @@ classdef MatRad_TopasConfig < handle
                         fprintf(fileID,num2str([dataTOPAS.raShiOut]));
                         fprintf(fileID,'\n\n');
                     end
-                end
-                
-                
-                % NozzleAxialDistance
-                fprintf(fileID,'d:Ge/Nozzle/TransZ = -%f mm\n', nozzleToAxisDistance);
-                if obj.pencilBeamScanning
-                    fprintf(fileID,'d:Ge/Nozzle/RotX = Tf/Beam/AngleX/Value rad\n');
-                    fprintf(fileID,'d:Ge/Nozzle/RotY = Tf/Beam/AngleY/Value rad\n');
-                    fprintf(fileID,'d:Ge/Nozzle/RotZ = 0.0 rad\n');
                 end
                 
                 %Range Shifter Definition
