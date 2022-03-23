@@ -295,7 +295,7 @@ classdef MatRad_TopasConfig < handle
             fname = fullfile(obj.thisFolder,obj.infilenames.geometry);
             obj.matRad_cfg.dispInfo('Reading Geometry from %s\n',fname);
             world = fileread(fname);
-            fprintf(fID,'%s\n\n',world);
+            fprintf(fID,'%s\n',world);
         end
         
         function writeScorers(obj,fID)
@@ -446,7 +446,8 @@ classdef MatRad_TopasConfig < handle
             end
             
             nParticlesTotal = 0;
-            
+            currentBixel = 1;
+
             %Preread beam setup
             switch obj.beamProfile
                 case 'biGaussian'
@@ -500,15 +501,13 @@ classdef MatRad_TopasConfig < handle
                 end
                 
                 
-                
                 %get beamlet properties for each bixel in the stf and write
                 %it into dataTOPAS
-                currentBixel = 1;
                 cutNumOfBixel = 0;
                 nBeamParticlesTotal(beamIx) = 0;
                 
                 dataTOPAS = [];
-                collectBixelIdx = [];
+%                 collectBixelIdx = [];
                 
                 %Loop over rays and then over spots on ray
                 for rayIx = 1:stf(beamIx).numOfRays
@@ -519,16 +518,13 @@ classdef MatRad_TopasConfig < handle
                         % check whether there are (enough) particles for beam delivery
                         if (nCurrentParticles>minParticlesBixel)
                             
-                            collectBixelIdx(end+1) = bixelIx;
+%                             collectBixelIdx(end+1) = bixelIx;
                             cutNumOfBixel = cutNumOfBixel + 1;
                             bixelEnergy = stf(beamIx).ray(rayIx).energy(bixelIx);
                             [~,ixTmp,~] = intersect(energies, bixelEnergy);
-                            
-                            voxel_x = -stf(beamIx).ray(rayIx).rayPos_bev(3);
-                            voxel_y = stf(beamIx).ray(rayIx).rayPos_bev(1);
-                            
-                            dataTOPAS(cutNumOfBixel).posX = -1.*voxel_x;
-                            dataTOPAS(cutNumOfBixel).posY = voxel_y;
+                                                        
+                            dataTOPAS(cutNumOfBixel).posX = stf(beamIx).ray(rayIx).rayPos_bev(3);
+                            dataTOPAS(cutNumOfBixel).posY = stf(beamIx).ray(rayIx).rayPos_bev(1);
                             
                             if obj.scorer.Dij
                                 % write particles directly to every beamlet for dij calculation (each bixel
@@ -542,8 +538,10 @@ classdef MatRad_TopasConfig < handle
                                 % angleX corresponds to the rotation around the X axis necessary to move the spot in the Y direction
                                 % angleY corresponds to the rotation around the Y' axis necessary to move the spot in the X direction
                                 % note that Y' corresponds to the Y axis after the rotation of angleX around X axis
+                                % note that Y translates to -Y for TOPAS
                                 dataTOPAS(cutNumOfBixel).angleX = atan(dataTOPAS(cutNumOfBixel).posY / SAD);
                                 dataTOPAS(cutNumOfBixel).angleY = atan(-dataTOPAS(cutNumOfBixel).posX ./ (SAD ./ cos(dataTOPAS(cutNumOfBixel).angleX)));
+                                % Translate posX and posY to patient coordinates
                                 dataTOPAS(cutNumOfBixel).posX = (dataTOPAS(cutNumOfBixel).posX / SAD)*(SAD-nozzleToAxisDistance);
                                 dataTOPAS(cutNumOfBixel).posY = (dataTOPAS(cutNumOfBixel).posY / SAD)*(SAD-nozzleToAxisDistance);
                             end
@@ -591,9 +589,7 @@ classdef MatRad_TopasConfig < handle
                         
                     end
                 end
-                
-                nParticlesTotal = nParticlesTotal + nBeamParticlesTotal(beamIx);
-                
+                               
                 % discard data if the current has unphysical values
                 idx = find([dataTOPAS.current] < 1);
                 dataTOPAS(idx) = [];
@@ -864,12 +860,9 @@ classdef MatRad_TopasConfig < handle
                 end
             end
             
-            
-            
-            
-            
+         
             %Bookkeeping
-            obj.MCparam.nbParticlesTotal = nParticlesTotal;
+            obj.MCparam.nbParticlesTotal = sum(nBeamParticlesTotal);
             obj.MCparam.nbHistoriesTotal = sum(historyCount);
             obj.MCparam.nbParticlesField = nBeamParticlesTotal;
             obj.MCparam.nbHistoriesField = historyCount;
