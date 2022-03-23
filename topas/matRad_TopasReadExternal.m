@@ -1,5 +1,7 @@
 function resultGUI = matRad_TopasReadExternal(folder)
 
+matRad_cfg =  MatRad_Config.instance();
+
 if contains(folder,'*')% && all(modulation ~= false)
     folder = dir(folder);
     for i = 1:length(folder)
@@ -18,6 +20,11 @@ for f = 1:length(folders)
         topasConfig = MatRad_TopasConfig();
         topasCubes = matRad_readTopasData(currFolder);
         
+        % check if all fields are filled.
+        if any(structfun(@isempty, topasCubes)) || any(structfun(@(x) all(x(:)==0), topasCubes))
+            matRad_cfg.dispWarning('Field in topasCubes resulted in either empty or all zeros.')
+        end
+
         loadedVars = load([currFolder filesep 'dij.mat'],'dij');
         dij = loadedVars.dij;
         loadedVars = load([currFolder filesep 'weights.mat'],'w');
@@ -80,8 +87,10 @@ for f = 1:length(folders)
         else
             resultGUI    = matRad_calcCubes(ones(dij.numOfBeams,1),dij,1);
         end
-    catch
-        warning(['error in file ',currFolder]);
+    catch ME
+        subFolder = strsplit(currFolder,'\');
+        subFolder = subFolder{end};
+        matRad_cfg.dispError(['Error in folder "',subFolder,'": ',strjoin(strsplit(ME.message,'\'),'/')]);
     end
 end
 
