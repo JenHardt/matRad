@@ -1,20 +1,21 @@
-function radDepthV = matRad_rayTracing(stf,ct,V,rot_coordsV,lateralCutOff)
-% matRad visualization of two-dimensional dose distributions on ct 
-% including segmentation
+function [radDepthV, radDepthCube] = matRad_rayTracing(stf,ct,V,rot_coordsV,lateralCutoff)
+% matRad visualization of two-dimensional dose distributions on ct including
+% segmentation
 % 
 % call
-%   radDepthV = matRad_rayTracing(stf,ct,V,rot_coordsV,lateralCutOff)
+%   [radDepthV, radDepthCube] = matRad_rayTracing(stf,ct,V,rot_coordsV,lateralCutoff)
 %
 % input
 %   stf:           matRad steering information struct of one beam
 %   ct:            ct cube
 %   V:             linear voxel indices e.g. of voxels inside patient.
 %   rot_coordsV    coordinates in beams eye view inside the patient
-%   lateralCutOff: lateral cut off used for ray tracing
+%   lateralCutoff: lateral cut off used for ray tracing
 
 %
 % output
-%   radDepthV:  radiological depth inside the patient
+%   radDepthV:      radiological depth inside the patient
+%   radDepthCube:   radiological depth in whole ct
 %
 % References
 %   [1] http://www.sciencedirect.com/science/article/pii/S1120179711001359
@@ -58,7 +59,7 @@ for i = 1:stf.numOfRays
    
     ix = (candidateRaysCoords_X(:) - (1+rayMx_bev_y/stf.SAD)*stf.ray(i).rayPos_bev(1)).^2 + ...
          (candidateRaysCoords_Z(:) - (1+rayMx_bev_y/stf.SAD)*stf.ray(i).rayPos_bev(3)).^2 ...
-           <= lateralCutOff^2;
+           <= lateralCutoff^2;
     
     candidateRayMx(ix) = 1;
     
@@ -129,4 +130,5 @@ end
 for i = 1:ct.numOfCtScen
     radDepthV{i} = radDepthCube{i}(V);
 end
+
 
