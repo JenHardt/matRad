@@ -1,4 +1,4 @@
-function data = readBinData(binFile,cubeDim)
+function data = matRad_readBinData(binFile,cubeDim)
     fID = fopen(binFile);
     data = fread(fID,prod(cubeDim),'double');
     fclose(fID);

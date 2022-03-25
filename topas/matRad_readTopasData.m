@@ -28,13 +28,13 @@ if calcDoseDirect
                 switch MCparam.outputType
                     case 'csv'
                         genFullFile = fullfile(folder,[genFileName '.csv']);
-                        data{k} = readCsvData(genFullFile,cubeDim);
+                        data{k} = matRad_readCsvData(genFullFile,cubeDim);
                     case 'binary'
                         genFullFile = fullfile(folder,[genFileName '.bin']);
                         %                         if iscell(MCparam.scoreReportQuantity)
-                        %                             [data{k},topasStd] = readBinData(genFullFile,cubeDim,numel(MCparam.scoreReportQuantity));
+                        %                             [data{k},topasStd] = matRad_readBinData(genFullFile,cubeDim,numel(MCparam.scoreReportQuantity));
                         %                         else
-                        data{k} = readBinData(genFullFile,cubeDim);
+                        data{k} = matRad_readBinData(genFullFile,cubeDim);
                         %                         end
                     otherwise
                         error('Not implemented!');
@@ -93,10 +93,10 @@ else % if topas dij calculation
                     switch MCparam.outputType
                         case 'csv'
                             genFullFile = fullfile(folder,[genFileName '.csv']);
-                            data = readCsvData(genFullFile,cubeDim);
+                            data = matRad_readCsvData(genFullFile,cubeDim);
                         case 'binary'
                             genFullFile = fullfile(folder,[genFileName '.bin']);
-                            data = readBinData(genFullFile,cubeDim);
+                            data = matRad_readBinData(genFullFile,cubeDim);
                         otherwise
                             error('Not implemented!');
                     end
@@ -115,28 +115,3 @@ end
 
 
 end
-
-function data = readCsvData(csvFile,cubeDim)
-data = zeros(cubeDim(2),cubeDim(1),cubeDim(3));
-fID = fopen(csvFile,'r');
-dataCsv = textscan(fID,'%d %d %d %f','Delimiter',',','CommentStyle','#','CollectOutput',true);
-fclose(fID);
-ix = sub2ind([cubeDim(1) cubeDim(2) cubeDim(3)],dataCsv{1}(:,2)+1,dataCsv{1}(:,1)+1,dataCsv{1}(:,3)+1);
-data(ix) = dataCsv{2};
-end
-
-function data = readBinData(binFile,cubeDim)
-fID = fopen(binFile);
-numOfQuantities = 1;
-dataRead = fread(fID,[numOfQuantities,prod(cubeDim)],'double');
-data = dataRead(1,:);
-% if numOfQuantities ~= 1
-%     std = dataRead(2,:);
-%     std = reshape(std,cubeDim(2),cubeDim(1),cubeDim(3));
-%     std = permute(std,[2 1 3]);
-% end
-fclose(fID);
-data = reshape(data,cubeDim(2),cubeDim(1),cubeDim(3));
-data = permute(data,[2 1 3]);
-end
-

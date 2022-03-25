@@ -1,4 +1,4 @@
-function data = readCsvData(csvFile,cubeDim)
+function data = matRad_readCsvData(csvFile,cubeDim)
     data = zeros(cubeDim(2),cubeDim(1),cubeDim(3));
     fID = fopen(csvFile,'r');
     dataCsv = textscan(fID,'%d %d %d %f','Delimiter',',','CommentStyle','#','CollectOutput',true);
