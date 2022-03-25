@@ -4,12 +4,12 @@ function plotIDD(varargin)
 figure
 hold on
 
-if ~isstruct(varargin{end-1})
+if nargin~=1 && ~isstruct(varargin{end-1})
     profile = varargin{end-1};
-    until = numel(varargin)-2;
+    until = nargin-2;
 else
-    profile = 0;
-    until = numel(varargin)-1;
+    profile = 1;
+    until = nargin-1;
 end
 
 if isstr(varargin{end}) && (strcmp(varargin{end},'RBE') || strcmp(varargin{end},'RBExD'))
