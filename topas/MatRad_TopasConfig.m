@@ -912,8 +912,6 @@ classdef MatRad_TopasConfig < handle
             if isfield(pln.propMC,'materialConverter') && isfield(pln.propMC.materialConverter,'mode')
                 obj.materialConverter.mode = pln.propMC.materialConverter.mode;
             end
-            checkMaterial = false;
-            rspCubeMethod = obj.rsp_methodCube;
 
             paramFile = obj.outfilenames.patientParam;
             dataFile = obj.outfilenames.patientCube;
@@ -924,6 +922,10 @@ classdef MatRad_TopasConfig < handle
             obj.MCparam.imageCubeFile = obj.outfilenames.patientCube;
             obj.MCparam.imageCubeDim = ct.cubeDim;
             obj.MCparam.imageVoxelDimension = ct.resolution;
+
+            outfile = fullfile(obj.workingDir, paramFile);
+            obj.matRad_cfg.dispInfo('Writing data to %s\n',outfile)
+            fID = fopen(outfile,'w+');
 
             switch obj.materialConverter.mode
                 case 'RSP'
