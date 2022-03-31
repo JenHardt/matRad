@@ -1,5 +1,5 @@
 
-# Wedenberg proton RBE scorer
+# McNamara proton RBE scorer
 sv:Sc/CellLines     		= 1 "CellLineGeneric"
 
 s:Sc/McNamaraAlpha/Quantity                   = "RBE_McNamara"

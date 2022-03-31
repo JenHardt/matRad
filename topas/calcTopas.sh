@@ -62,9 +62,9 @@ do
 
 			if [ "$estimatedTimeSub" -ne "0" ]; then
 				finishDateSub=$(date '+%a, %d.%m., %H:%Mh' --date="@$((secondsSub2+ estimatedTimeSub))")
-				printf "${HOSTNAME:11:7}: Simulation of subFile $file.txt ($counterSub/${#subFiles[@]}) in '$(basename $directory)' finished in ${differenceSub[counterSub]} seconds.\nEstimated date finished: $finishDateSub." | telegram-send --silent --stdin
+				printf "${HOSTNAME:11:7}: Simulation of subFile $file ($counterSub/${#subFiles[@]}) in '$(basename $directory)' finished in ${differenceSub[counterSub]} seconds.\nEstimated date finished: $finishDateSub." | telegram-send --silent --stdin
 			else
-				printf "${HOSTNAME:11:7}: Simulation of subFile $file.txt ($counterSub/${#subFiles[@]}) in '$(basename $directory)' finished in ${differenceSub[counterSub]} seconds." | telegram-send --silent --stdin	
+				printf "${HOSTNAME:11:7}: Simulation of subFile $file ($counterSub/${#subFiles[@]}) in '$(basename $directory)' finished in ${differenceSub[counterSub]} seconds." | telegram-send --silent --stdin	
 			fi
 			let counterSub=counterSub+1
 		fi
