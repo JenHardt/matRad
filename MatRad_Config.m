@@ -164,7 +164,7 @@ classdef MatRad_Config < handle
             obj.propDoseCalc.defaultIgnoreOutsideDensities = true; %Ignore densities outside of cst contours
             obj.propDoseCalc.defaultVoxelSubIx = []; %Allows specification of a subindex list for dose calculation, empty by default means automatic setting
             obj.propDoseCalc.defaultUseCustomPrimaryPhotonFluence = false; %Use a custom primary photon fluence
-            obj.propDoseCalc.defaultCalcLET = false; %calculate LETs for particles
+            obj.propDoseCalc.defaultCalcLET = true; %calculate LETs for particles
 
             obj.propDoseCalc.defaultAirOffsetCorrection = true;
 
@@ -233,7 +233,7 @@ classdef MatRad_Config < handle
             obj.propDoseCalc.defaultIgnoreOutsideDensities = true;
             obj.propDoseCalc.defaultVoxelSubIx = []; %Allows specification of a subindex list for dose calculation, empty by default means automatic setting
             obj.propDoseCalc.defaultUseCustomPrimaryPhotonFluence = false; %Use a custom primary photon fluence
-            obj.propDoseCalc.defaultCalcLET = false; %calculate LET for particles
+            obj.propDoseCalc.defaultCalcLET = true; %calculate LET for particles
             
             % default properties for fine sampling calculation
             obj.propDoseCalc.fineSamplingProperties.sigmaSub = 2;
