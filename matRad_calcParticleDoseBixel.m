@@ -197,6 +197,10 @@ end
 if ~isempty(heteroCorrDepths) && propHeterogeneity.modulateBioDose
     % preallocate space for alpha beta
     tissueClasses = unique(vTissueIndex);
+    if tissueClasses == 0
+        matRad_cfg.dispError('Error in Heterogeneity correction: TissueIndex not assigned. ');
+    end
+
     bixel.Z_Aij = zeros(numel(radDepths),1);
     bixel.Z_Bij = zeros(numel(radDepths),1);
 
