@@ -20,7 +20,7 @@ classdef MatRad_Config < handle
 
 
     properties
-        
+
         %Logging
         logLevel = 3; %1 = only Errors, 2 = with Warnings, 3 = Info output, 4 = deprecation warnings, 5 = debug information
         keepLog = false; %Stores the full log in memory
@@ -67,7 +67,7 @@ classdef MatRad_Config < handle
             %Set Version
             obj.getEnvironment();
             obj.matRad_version = matRad_version();
-            
+
             %Just to catch people messing with the properties in the file
             if ~isempty(obj.writeLog) && obj.writeLog
                 logFile = [obj.matRadRoot filesep 'matRad.log'];
@@ -138,7 +138,7 @@ classdef MatRad_Config < handle
             if obj.writeLog
                 fprintf(obj.logFileHandle,forwardArgs{:});
             end
-        end 
+        end
     end
 
     methods
@@ -203,14 +203,14 @@ classdef MatRad_Config < handle
             obj.propHeterogeneity.sampling.defaultNumOfSamples = 50;
             obj.propHeterogeneity.sampling.defaultContinuous = true;
 
-            
+
             % default properties for fine sampling calculation
             obj.propDoseCalc.fineSamplingProperties.defaultSigmaSub = 1;
             obj.propDoseCalc.fineSamplingProperties.defaultN = 21;
             obj.propDoseCalc.fineSamplingProperties.defaultMethod = 'russo';
 
             obj.disableGUI = false;
-            
+
             obj.defaults.samplingScenarios = 25;
         end
 
@@ -234,12 +234,12 @@ classdef MatRad_Config < handle
             obj.propDoseCalc.defaultVoxelSubIx = []; %Allows specification of a subindex list for dose calculation, empty by default means automatic setting
             obj.propDoseCalc.defaultUseCustomPrimaryPhotonFluence = false; %Use a custom primary photon fluence
             obj.propDoseCalc.defaultCalcLET = true; %calculate LET for particles
-            
+
             % default properties for fine sampling calculation
             obj.propDoseCalc.fineSamplingProperties.sigmaSub = 2;
             obj.propDoseCalc.fineSamplingProperties.N = 5;
             obj.propDoseCalc.fineSamplingProperties.method = 'russo';
-            
+
             obj.propOpt.defaultMaxIter = 10;
 
             obj.propMC.ompMC_defaultHistories = 100;
@@ -422,24 +422,25 @@ classdef MatRad_Config < handle
                 else
                     obj.dispError('MC only implemented for protons, helium and carbon ions (only TOPAS).');
                 end
-            end
-            switch pln.propMC.engine
-                % number of histories per beamlet (nCasePerBixel > 1),
-                % max stat uncertainity (0 < nCasePerBixel < 1)
-                % set number of particles simulated per pencil beam
-                case 'MCsquare'
-                    if ~isfield(pln.propMC,'histories') || (pln.propMC.histories==obj.propMC.MCsquare_defaultHistories)
-                        pln.propMC.histories = obj.propMC.MCsquare_defaultHistories;
-                        obj.dispInfo('Using default number of Histories per Bixel: %d\n',pln.propMC.histories);
-                    end
-                case 'TOPAS'
-                    if ~isfield(pln.propMC,'externalCalculation')
-                        pln.propMC.externalCalculation = obj.propMC.defaultExternalCalculation;
-                    end
-                    if ~isfield(pln.propMC,'histories') || (pln.propMC.histories==obj.propMC.particles_defaultHistories)
-                        pln.propMC.histories = obj.propMC.particles_defaultHistories;
-                        obj.dispInfo('Using default number of Histories per Bixel: %d\n',pln.propMC.histories);
-                    end
+
+                switch pln.propMC.engine
+                    % number of histories per beamlet (nCasePerBixel > 1),
+                    % max stat uncertainity (0 < nCasePerBixel < 1)
+                    % set number of particles simulated per pencil beam
+                    case 'MCsquare'
+                        if ~isfield(pln.propMC,'histories') || (pln.propMC.histories==obj.propMC.MCsquare_defaultHistories)
+                            pln.propMC.histories = obj.propMC.MCsquare_defaultHistories;
+                            obj.dispInfo('Using default number of Histories per Bixel: %d\n',pln.propMC.histories);
+                        end
+                    case 'TOPAS'
+                        if ~isfield(pln.propMC,'externalCalculation')
+                            pln.propMC.externalCalculation = obj.propMC.defaultExternalCalculation;
+                        end
+                        if ~isfield(pln.propMC,'histories') || (pln.propMC.histories==obj.propMC.particles_defaultHistories)
+                            pln.propMC.histories = obj.propMC.particles_defaultHistories;
+                            obj.dispInfo('Using default number of Histories per Bixel: %d\n',pln.propMC.histories);
+                        end
+                end
             end
         end
     end
@@ -459,21 +460,21 @@ classdef MatRad_Config < handle
                 obj = uniqueInstance;
             end
         end
-               
+
         function obj = loadobj(sobj)
-        % Overload the loadobj function to allow downward compatibility
-        % with workspaces which where saved as an older version of this class
-        
+            % Overload the loadobj function to allow downward compatibility
+            % with workspaces which where saved as an older version of this class
+
             function basic_struct = mergeStructs(basic_struct, changed_struct)
                 % nested function for merging the properties of the loaded
                 % obj into a new obj.
-                % Merges two structs, including nestes structs, by overwriting 
+                % Merges two structs, including nestes structs, by overwriting
                 % the properties of basic_struct with the changed properties in changed_struct
                 fields = fieldnames(basic_struct);
-                for k = 1:length(fields)  
+                for k = 1:length(fields)
                     disp(fields{k});
-                    if(isfield(changed_struct, fields{k}))                 
-                        if isstruct(changed_struct.(fields{k})) && isstruct(basic_struct.(fields{i}))        
+                    if(isfield(changed_struct, fields{k}))
+                        if isstruct(changed_struct.(fields{k})) && isstruct(basic_struct.(fields{i}))
                             basic_struct.(fields{k}) = mergeStructs(basic_struct.(fields{k}), changed_struct.(fields{i}));
                         else
                             basic_struct.(fields{k}) = changed_struct.(fields{k});
@@ -481,14 +482,14 @@ classdef MatRad_Config < handle
                     end
                 end
             end
-            
+
             % If the saved object is loaded as a struct there was a problem
             % with the generic loading process most likly a version-conflict
-            % regarding the structs, in order to fix this, do a custom 
-            % loading process including recursivly copying the conflicting structs 
+            % regarding the structs, in order to fix this, do a custom
+            % loading process including recursivly copying the conflicting structs
             if isstruct(sobj)
                 warning('The  loaded object differs from the current MatRad_Config class, resuming the loading process with the overloaded loadobj function!');
-                obj = MatRad_Config(); 
+                obj = MatRad_Config();
                 % Use a metaclass object to get the properties because
                 % Octave <= 5.2 doesn't have a properties function
                 props = {metaclass(obj).PropertyList.Name};
@@ -521,10 +522,10 @@ classdef MatRad_Config < handle
                 end
             else
                 obj = sobj;
-            end     
+            end
         end
-        
-        
+
+
     end
 end
 

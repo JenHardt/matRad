@@ -60,9 +60,9 @@ pln = matRad_cfg.loadDefaultParam(pln);
 kernelCutoff = pln.propDoseCalc.kernelCutOff;
 
 % set lateral cutoff value
-lateralCutOff = pln.propDoseCalc.geometriCutOff; % [mm]
+lateralCutOff = pln.propDoseCalc.geometricCutOff; % [mm]
 
-if kernelCutoff < pln.propDoseCalc.geometriCutOff
+if kernelCutoff < pln.propDoseCalc.geometricCutOff
     matRad_cfg.dispWarning('Kernel Cut-Off ''%f mm'' cannot be smaller than geometric lateral cutoff ''%f mm''. Using ''%f mm''!',kernelCutoff,lateralCutOff,lateralCutOff);
     kernelCutoff = lateralCutOff;
 end
@@ -113,7 +113,7 @@ if ~isFieldBasedDoseCalc
    
    % toggle custom primary fluence on/off. if 0 we assume a homogeneous
    % primary fluence, if 1 we use measured radially symmetric data
-   if ~useCustomPrimFluenceBool
+   if ~pln.propDoseCalc.useCustomPrimaryPhotonFluence
       % gaussian convolution of field to model penumbra
       F = real(ifft2(fft2(F,gaussConvSize,gaussConvSize).*fft2(gaussFilter,gaussConvSize,gaussConvSize)));
    end
@@ -186,7 +186,7 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
         kernel3Mx = interp1(kernelPos,kernel3,sqrt(kernelX.^2+kernelZ.^2),'linear',0);
         
         % convolution here if no custom primary fluence and no field based dose calc
-        if ~useCustomPrimFluenceBool && ~isFieldBasedDoseCalc
+        if ~pln.propDoseCalc.useCustomPrimaryPhotonFluence && ~isFieldBasedDoseCalc
             
             % Display console message
             matRad_cfg.dispInfo('\tUniform primary photon fluence -> pre-compute kernel convolution...\n');
@@ -216,7 +216,7 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
             bixelsPerBeam = bixelsPerBeam + 1;
             
             % convolution here if custom primary fluence OR field based dose calc
-            if useCustomPrimFluenceBool || isFieldBasedDoseCalc
+            if pln.propDoseCalc.useCustomPrimaryPhotonFluence || isFieldBasedDoseCalc
                 
                 % overwrite field opening if necessary
                 if isFieldBasedDoseCalc
@@ -287,7 +287,7 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                             stf(i).ray(j).targetPoint_bev, ...
                             machine.meta.SAD, ...
                             find(~isnan(radDepthVdoseGrid{ctScen})), ...
-                            effectiveLateralCutOff);
+                            pln.propDoseCalc.effectiveLateralCutOff);
                         
                         % empty bixels may happen during recalculation of error
                         % scenarios -> skip to next bixel
