@@ -13,6 +13,7 @@ load([folder filesep 'MCparam.mat']);
 correctionFactor = 1e6 / double(MCparam.nbHistoriesTotal); %double(MCparam.nbParticlesTotal) / double(MCparam.nbHistoriesTotal);
 
 cubeDim = MCparam.imageCubeDim;
+MCparam.tallies = unique(MCparam.tallies);
 
 if calcDoseDirect
     for t = 1:length(MCparam.tallies)
@@ -42,7 +43,7 @@ if calcDoseDirect
                 topasSum = topasSum + data{k};
             end
             
-            if strcmp(tname,'physicalDose')
+            if contains(tname,'dose','IgnoreCase',true)
                 topasSum = correctionFactor.*topasSum;
                 
                 % Calculate Standard Deviation from batches
@@ -60,7 +61,7 @@ if calcDoseDirect
                 topasCube.([tname '_std_beam' num2str(f)]) = topasStdSum;
                 
                 SumVarOverFields = SumVarOverFields + topasVarSum;
-            elseif strcmp(tname,'alpha') || strcmp(tname,'beta') || strcmp(tname,'RBE') || strcmp(tname,'LET')
+            elseif contains(tname,'alpha','IgnoreCase',true) || contains(tname,'beta','IgnoreCase',true) || contains(tname,'RBE','IgnoreCase',true) || contains(tname,'LET','IgnoreCase',true)
                 topasSum = topasSum./ MCparam.nbRuns;
             end
             
@@ -70,12 +71,12 @@ if calcDoseDirect
             topasCube.([tname '_beam' num2str(f)]) = topasSum;
             
         end
-        if strcmp(tname,'physicalDose')
-            topasCube.physicalDose_std = sqrt(SumVarOverFields);
-        end
-        if ~(strcmp(tname,'alpha') || strcmp(tname,'beta') || strcmp(tname,'RBE'))
-            topasCube.(tname) = topasTally;
-        end
+%         if contains(tname,'dose','IgnoreCase',true)
+%             topasCube.([tname '_std']) = sqrt(SumVarOverFields);
+%         end
+%         if ~(contains(tname,'alpha','IgnoreCase',true) || contains(tname,'beta','IgnoreCase',true) || contains(tname,'RBE','IgnoreCase',true))
+%             topasCube.(tname) = topasTally;
+%         end
     end
     
 else % if topas dij calculation

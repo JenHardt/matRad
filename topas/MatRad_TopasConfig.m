@@ -55,11 +55,11 @@ classdef MatRad_TopasConfig < handle
 
         %Image
         materialConverter = struct('mode','HUToWaterSchneider',...    %'RSP','HUToWaterSchneider';
-            'densityCorrection','TOPAS1',... %'default','TOPAS1','TOPAS2','TOPAS3'
+            'densityCorrection','TOPAS2',... %'default','TOPAS1','TOPAS2','TOPAS3'
             'addSection','none',... %'none','lung','poisson','sampledDensities' (the last 2 only with modulation)
             'addTitanium',false,... %'false','true' (can only be used with advanced HUsections)
             'HUSection','advanced',... %'default','advanced'
-            'HUToMaterial','default',... %'default',','advanced','MCsquare'
+            'HUToMaterial','advanced',... %'default',','advanced','MCsquare'
             'loadConverterFromFile',false); % set true if you want to use your own SchneiderConverter written in "TOPAS_SchneiderConverter"
 
         arrayOrdering = 'F'; %'C';
@@ -83,6 +83,7 @@ classdef MatRad_TopasConfig < handle
             'outputType','binary',... %'csv'; 'binary';%
             'reportQuantity','Sum');
         %         scoreReportQuantity = {'Sum','Standard_Deviation'};
+        scorerRBEmodelOrderForEvaluation = {'MCN','WED','LEM','libamtrack'};
         bioParam = struct( 'PrescribedDose',2,...
             'AlphaX',0.1,...
             'BetaX',0.05,...

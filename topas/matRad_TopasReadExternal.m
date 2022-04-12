@@ -19,7 +19,10 @@ for f = 1:length(folders)
         currFolder = folders{f};
         topasConfig = MatRad_TopasConfig();
         topasCubes = matRad_readTopasData(currFolder);
-        
+
+        load([folder filesep 'MCparam.mat']);
+        MCparam.tallies = unique(MCparam.tallies);
+
         % check if all fields are filled.
         if any(structfun(@isempty, topasCubes)) || any(structfun(@(x) all(x(:)==0), topasCubes))
             matRad_cfg.dispWarning('Field in topasCubes resulted in either empty or all zeros.')
@@ -29,32 +32,44 @@ for f = 1:length(folders)
         dij = loadedVars.dij;
         loadedVars = load([currFolder filesep 'weights.mat'],'w');
         w = loadedVars.w;
-        
+
         ctScen = 1;
         fnames = fieldnames(topasCubes);
         dij.MC_tallies = fnames;
-        
-        if ~isfield(topasCubes,'alpha_beam1')
+
+        if ~any(contains(fnames,'alpha','IgnoreCase',true))
             for c = 1:numel(fnames)
                 dij.(fnames{c}){ctScen,1} = sum(w(:,ctScen))*reshape(topasCubes.(fnames{c}),[],1);
             end
         else
             for d = 1:dij.numOfBeams
-                dij.physicalDose{ctScen,1}(:,d)         = sum(w)*reshape(topasCubes.(['physicalDose_beam',num2str(d)]),[],1);
-                dij.alpha{ctScen,1}(:,d)                = reshape(topasCubes.(['alpha_beam',num2str(d)]),[],1);
-                dij.beta{ctScen,1}(:,d)                 = reshape(topasCubes.(['beta_beam',num2str(d)]),[],1);
-                if isfield(topasCubes,'doseToWater')
-                    dij.doseToWater{ctScen,1}(:,d)      = sum(w)*reshape(topasCubes.(['doseToWater_beam',num2str(d)]),[],1);
+                doseFields = MCparam.tallies(contains(MCparam.tallies,'dose','IgnoreCase',true));
+                for j = 1:numel(doseFields)
+                    dij.(doseFields{j}){ctScen,1}(:,d)             = sum(w)*reshape(topasCubes.([doseFields{j} '_beam',num2str(d)]),[],1);
+                    dij.([doseFields{j} '_std']){ctScen,1}(:,d)          = sum(w)*reshape(topasCubes.([doseFields{j} '_std_beam',num2str(d)]),[],1);
                 end
-                if isfield(topasCubes,'LET')
-                    dij.LET{ctScen,1}(:,d)              = reshape(topasCubes.(['LET_beam',num2str(d)]),[],1);
+
+                abFields = MCparam.tallies(contains(MCparam.tallies,{'alpha','beta','LET'},'IgnoreCase',true));
+                for j = 1:numel(abFields)
+                    dij.(abFields{j}){ctScen,1}(:,d)        = reshape(topasCubes.([abFields{j} '_beam',num2str(d)]),[],1);
                 end
-                
-                dij.mAlphaDose{ctScen,1}(:,d)           = dij.physicalDose{ctScen,1}(:,d) .* dij.alpha{ctScen,1}(:,d);
-                dij.mSqrtBetaDose{ctScen,1}(:,d)        = sqrt(dij.physicalDose{ctScen,1}(:,d)) .* dij.beta{ctScen,1}(:,d);
+
+                % find first available model for RBE evaluation
+                for j = 1:numel(topasConfig.scorerRBEmodelOrderForEvaluation)
+                    if any(contains(fnames,topasConfig.scorerRBEmodelOrderForEvaluation{j}))
+                        model = topasConfig.scorerRBEmodelOrderForEvaluation{j};
+                        break
+                    end
+                end
+
+                % Either dose to water or dose to medium (physical Dose) used to calculate alpha and sqrt(beta) doses
+                dij.mAlphaDose{ctScen,1}(:,d)           = dij.(['alpha_' model]){ctScen,1}(:,d) .* dij.physicalDose{ctScen,1}(:,d);             
+                dij.mSqrtBetaDose{ctScen,1}(:,d)        = sqrt(dij.(['beta_' model]){ctScen,1}(:,d)) .* dij.physicalDose{ctScen,1}(:,d);
+%                 dij.mAlphaDose{ctScen,1}(:,d)           = dij.(['alpha_' model]){ctScen,1}(:,d) .* dij.doseToWater{ctScen,1}(:,d);             
+%                 dij.mSqrtBetaDose{ctScen,1}(:,d)        = sqrt(dij.(['beta_' model]){ctScen,1}(:,d)) .* dij.physicalDose{ctScen,1}(:,d);
             end
         end
-        
+
         if length(folders) > 1
             outDose    = matRad_calcCubes(ones(dij.numOfBeams,1),dij,1);
             if ~exist('resultGUI')
@@ -65,18 +80,18 @@ for f = 1:length(folders)
                 for i = 1:length(beamInfo)
                     resultGUI.(['physicalDose', beamInfo(i).suffix]) = zeros(dij.ctGrid.dimensions);
                     resultGUI.(['RBExD', beamInfo(i).suffix]) = zeros(dij.ctGrid.dimensions);
-                    
+
                     resultGUI.(['alpha', beamInfo(i).suffix]) = {};
                     resultGUI.(['beta', beamInfo(i).suffix]) = {};
                     resultGUI.(['RBE', beamInfo(i).suffix]) = {};
                     resultGUI.(['effect', beamInfo(i).suffix]) = {};
                 end
             end
-            
+
             for i = 1:length(beamInfo)
                 resultGUI.(['physicalDose', beamInfo(i).suffix]) = resultGUI.(['physicalDose', beamInfo(i).suffix]) + outDose.(['physicalDose', beamInfo(i).suffix])/length(folders);
                 if isfield(outDose,'alpha')
-                    resultGUI.(['RBExD', beamInfo(i).suffix]) = resultGUI.(['RBExD', beamInfo(i).suffix]) + outDose.(['RBExD', beamInfo(i).suffix])/length(folders);                  
+                    resultGUI.(['RBExD', beamInfo(i).suffix]) = resultGUI.(['RBExD', beamInfo(i).suffix]) + outDose.(['RBExD', beamInfo(i).suffix])/length(folders);
                     resultGUI.(['alpha', beamInfo(i).suffix]){f} = outDose.(['alpha', beamInfo(i).suffix]);
                     resultGUI.(['beta', beamInfo(i).suffix]){f} = outDose.(['beta', beamInfo(i).suffix]);
                     resultGUI.(['RBE', beamInfo(i).suffix]){f} = outDose.(['RBE', beamInfo(i).suffix]);
@@ -85,7 +100,7 @@ for f = 1:length(folders)
                 resultGUI.samples = f;
             end
         else
-            resultGUI    = matRad_calcCubes(ones(dij.numOfBeams,1),dij,1);
+            resultGUI    = matRad_calcCubesMC(ones(dij.numOfBeams,1),dij,1);
         end
     catch ME
         subFolder = strsplit(currFolder,'\');
