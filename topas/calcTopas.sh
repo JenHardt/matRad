@@ -3,20 +3,16 @@
 
 export TOPAS_G4_DATA_DIR=~/G4Data
 
-directoriesString=$(find $PWD/$1 -maxdepth 3 -type d | sort -n) #get names of subdirectories
-directoriesUnsorted=($directoriesString) #save as array
 counter=0
-for f in "${directoriesUnsorted[@]}"
+for f in $(find $PWD/$1 -maxdepth 3 -type d | sort -n)
 do
-	res=($f/*.txt) #check if folder contains txt file to run	
-	if [[ "$res" != *"*"* ]]; then
-		directories[counter]=$f
+	res=($f/*run*.txt) #check if folder contains txt file to run
+	if [ -f "$res" ]; then
+                directories[counter]=$f
 		let counter=counter+1
 	fi
 done
 
-unset directoriesString
-unset directoriesUnsorted
 echo "Submitted calculation of ${#directories[@]} folders."
 counter=1
 
@@ -25,7 +21,7 @@ do
 	cd $directory
 	seconds1=$(date '+%s')
 	fileTest=(*run5.txt)
-	if [ -n "$fileTest" ]; then
+	if [ -f "$fileTest" ]; then
 		subFiles=(matRad_plan_field*.txt)
 		counterSub=1
 	fi
@@ -33,7 +29,7 @@ do
 	for s in $directory/matRad_plan_*.txt
 	do
 		# Start second timer if multiple runs are present (long simulation with substeps)
-		if [ -n "$fileTest" ]; then
+		if [ -f "$fileTest" ]; then
 			secondsSub1=$(date '+%s')
 		fi
 		
@@ -53,7 +49,7 @@ do
 		fi
 
 		# output for multiple subfolders/runs to give updates on the length
-		if [ -n "$fileTest" ]; then
+		if [ -f "$fileTest" ]; then
 			secondsSub2=$(date '+%s')
 			let differenceSub[counterSub]=secondsSub2-secondsSub1
 			sumSub=$(IFS=+; echo "$((${differenceSub[*]}))")
