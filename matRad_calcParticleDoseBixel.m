@@ -139,9 +139,10 @@ if isstruct(baseData.Z)
                 ellSq = bsxfun(@plus, baseData.Z.width'.^2, matRad_getHeterogeneityCorrSigmaSq(heteroCorrDepths));
 
             otherwise
-                error('Error in heterogeneity correction')
+                matRad_cfg.dispError('Error in heterogeneity correction')
         end
     else
+        % use normal width to not include any depth modulation
         ellSq = ones(numel(radDepths),1)*baseData.Z.width'.^2;
     end
 
@@ -152,7 +153,7 @@ else
     bixel.Z = X(:,1);
 
     if ~isempty(heteroCorrDepths)
-        warning('calcParticleDoseBixel: heterogeneity correction enabled but no APM base data was loaded.')
+        matRad_cfg.dispWarning('calcParticleDoseBixel: heterogeneity correction enabled but no APM base data was loaded.')
     end
 
 end
@@ -160,96 +161,111 @@ end
 %% calculating the physical dose
 bixel.physDose = conversionFactor * bixel.L .* bixel.Z;
 
-%% manual modulation in case of RBE modeling
-if (~isempty(heteroCorrDepths) && propHeterogeneity.modulateLET) || (~isempty(propHeterogeneity) && propHeterogeneity.modulateBioDose)
+%% manual modulation of alpha and sqrtBeta dose in case of RBE modeling
+% this only makes sense if APM data is used
+if isstruct(baseData.Z) && ~isempty(heteroCorrDepths)
 
-    [~,lungDepthAtBraggPeakIx] = min(abs(radialDist_sq+(radDepths-baseData.peakPos).^2));
-    lungDepthAtBraggPeak = heteroCorrDepths(lungDepthAtBraggPeakIx);
-    bixel.heteroCorr.SigmaSq = matRad_getHeterogeneityCorrSigmaSq(lungDepthAtBraggPeak);
+    % Prepare heteroCorrSigma and Gaussian convolution
+    if propHeterogeneity.modulateLET || propHeterogeneity.modulateBioDose
 
-    % define Gaussian around zero
-    resolution   = min(diff(baseData.depths));
-    gaussNumOfPoints = round(6*sqrt(bixel.heteroCorr.SigmaSq)/resolution);
-    gaussWidth = linspace(-resolution*fix(gaussNumOfPoints/2), resolution*fix(gaussNumOfPoints/2), gaussNumOfPoints);
-    %save normalize Gaussian and grids
-    bixel.heteroCorr.Gauss = Gauss(gaussWidth,0,bixel.heteroCorr.SigmaSq);
-    bixel.heteroCorr.Gauss = bixel.heteroCorr.Gauss/sum(bixel.heteroCorr.Gauss);
-    bixel.heteroCorr.fineGrid = min(baseData.depths)-3*sqrt(bixel.heteroCorr.SigmaSq):resolution:max(baseData.depths)+3*sqrt(bixel.heteroCorr.SigmaSq);
-    bixel.heteroCorr.coarseGrid = baseData.depths;
+        [~,lungDepthAtBraggPeakIx] = min(abs(radialDist_sq+(radDepths-baseData.peakPos).^2));
+        lungDepthAtBraggPeak = heteroCorrDepths(lungDepthAtBraggPeakIx);
+        bixel.heteroCorr.SigmaSq = matRad_getHeterogeneityCorrSigmaSq(lungDepthAtBraggPeak);
 
-end
+        % define Gaussian around zero
+        resolution   = min(diff(baseData.depths));
+        gaussNumOfPoints = round(6*sqrt(bixel.heteroCorr.SigmaSq)/resolution);
+        gaussWidth = linspace(-resolution*fix(gaussNumOfPoints/2), resolution*fix(gaussNumOfPoints/2), gaussNumOfPoints);
+        %save normalize Gaussian and grids
+        bixel.heteroCorr.Gauss = Gauss(gaussWidth,0,bixel.heteroCorr.SigmaSq);
+        bixel.heteroCorr.Gauss = bixel.heteroCorr.Gauss/sum(bixel.heteroCorr.Gauss);
+        bixel.heteroCorr.fineGrid = min(baseData.depths)-3*sqrt(bixel.heteroCorr.SigmaSq):resolution:max(baseData.depths)+3*sqrt(bixel.heteroCorr.SigmaSq);
+        bixel.heteroCorr.coarseGrid = baseData.depths;
 
-% LET convolution
-if ~isempty(heteroCorrDepths) && propHeterogeneity.modulateLET
-
-    % LET extrapolation to finer grid
-    LET = matRad_interp1(bixel.heteroCorr.coarseGrid,baseData.LET,bixel.heteroCorr.fineGrid,'extrap');
-    LET(isnan(LET)) = 0;
-
-    % Convolution
-    bixel.LET = conv(LET,bixel.heteroCorr.Gauss,'same');
-
-    % set resolution to original
-    bixel.LET = matRad_interp1(bixel.heteroCorr.fineGrid,bixel.LET,bixel.heteroCorr.coarseGrid);
-    %      figure, plot(x,LET), hold on, plot(x,bixel.LET)
-end
-
-if ~isempty(heteroCorrDepths) && propHeterogeneity.modulateBioDose
-    % preallocate space for alpha beta
-    tissueClasses = unique(vTissueIndex);
-    if tissueClasses == 0
-        matRad_cfg.dispError('Error in Heterogeneity correction: TissueIndex not assigned. ');
     end
 
-    bixel.Z_Aij = zeros(numel(radDepths),1);
-    bixel.Z_Bij = zeros(numel(radDepths),1);
+    % LET convolution
+    if propHeterogeneity.modulateLET
 
-    if isfield(baseData,'alphaDose') && isstruct(baseData.alphaDose)
-        for i = 1:numel(tissueClasses)
-            ix = vTissueIndex == tissueClasses(i);
-            bixel.Z_Aij(ix)  = conversionFactor * baseData.LatCutOff.CompFac * ...
-                sumGauss(radDepths(ix)-baseData.offset,baseData.alphaDose(tissueClasses(i)).mean,...
-                (baseData.alphaDose(tissueClasses(i)).width).^2,baseData.alphaDose(tissueClasses(i)).weight);
+        % LET extrapolation to finer grid
+        LET = matRad_interp1(bixel.heteroCorr.coarseGrid,baseData.LET,bixel.heteroCorr.fineGrid,'extrap');
+        LET(isnan(LET)) = 0;
 
-            bixel.Z_Bij(ix)  = conversionFactor * baseData.LatCutOff.CompFac * ...
-                sumGauss(radDepths(ix)-baseData.offset,baseData.SqrtBetaDose(tissueClasses(i)).mean,...
-                (baseData.SqrtBetaDose(tissueClasses(i)).width).^2,baseData.SqrtBetaDose(tissueClasses(i)).weight)';
+        % Convolution
+        bixel.LET = conv(LET,bixel.heteroCorr.Gauss,'same');
+
+        % set resolution to original
+        bixel.LET = matRad_interp1(bixel.heteroCorr.fineGrid,bixel.LET,bixel.heteroCorr.coarseGrid);
+        %      figure, plot(x,LET), hold on, plot(x,bixel.LET)
+    end
+
+    if propHeterogeneity.modulateBioDose
+        % preallocate space for alpha beta
+        tissueClasses = unique(vTissueIndex);
+        if tissueClasses == 0
+            matRad_cfg.dispError('Error in Heterogeneity correction: TissueIndex not assigned. ');
         end
 
-    elseif isfield(baseData,'alpha')
-        if isstruct(baseData.Z)
-            baseData.alphaDose = baseData.Z.profileORG .* baseData.alpha;
-            baseData.sqrtBetaDose = baseData.Z.profileORG .* sqrt(baseData.beta);
+        bixel.Z_Aij = zeros(numel(radDepths),1);
+        bixel.Z_Bij = zeros(numel(radDepths),1);
+
+        if isfield(baseData,'alphaDose') && isstruct(baseData.alphaDose)
+            for i = 1:numel(tissueClasses)
+                ix = vTissueIndex == tissueClasses(i);
+                bixel.Z_Aij(ix)  = conversionFactor * baseData.LatCutOff.CompFac * ...
+                    sumGauss(radDepths(ix),baseData.alphaDose(tissueClasses(i)).mean,...
+                    (baseData.alphaDose(tissueClasses(i)).width).^2 + bixel.heteroCorr.SigmaSq, ...
+                    baseData.alphaDose(tissueClasses(i)).weight);
+
+                bixel.Z_Bij(ix)  = conversionFactor * baseData.LatCutOff.CompFac * ...
+                    sumGauss(radDepths(ix),baseData.SqrtBetaDose(tissueClasses(i)).mean,...
+                    (baseData.SqrtBetaDose(tissueClasses(i)).width).^2 + bixel.heteroCorr.SigmaSq, ...
+                    baseData.SqrtBetaDose(tissueClasses(i)).weight)';
+            end
+
+        elseif isfield(baseData,'alpha')
+            alphaDose = baseData.Z.profileORG .* baseData.alpha;
+            sqrtBetaDose = baseData.Z.profileORG .* sqrt(baseData.beta);
+
+            % alpha beta convolution
+            alphaDose = matRad_interp1(bixel.heteroCorr.coarseGrid,alphaDose,bixel.heteroCorr.fineGrid,'extrap');
+            alphaDose(isnan(alphaDose)) = 0;
+            sqrtBetaDose = matRad_interp1(bixel.heteroCorr.coarseGrid,sqrtBetaDose,bixel.heteroCorr.fineGrid,'extrap');
+            sqrtBetaDose(isnan(sqrtBetaDose)) = 0;
+
+            if bixel.heteroCorr.SigmaSq ~= 0
+                alphaDoseConv = zeros(size(alphaDose));
+                sqrtBetaDoseConv = zeros(size(alphaDose));
+                for i = 1:size(alphaDose,2)
+                    alphaDoseConv(:,i) = conv(alphaDose(:,i),bixel.heteroCorr.Gauss,'same');
+                    sqrtBetaDoseConv(:,i) = conv(sqrtBetaDose(:,i),bixel.heteroCorr.Gauss,'same');
+                end
+            else
+                alphaDoseConv = alphaDose;
+                sqrtBetaDoseConv = sqrtBetaDose;
+            end
+
+            for i = 1:numel(tissueClasses)
+                ix = vTissueIndex == tissueClasses(i);
+                bixel.Z_Aij(ix) = conversionFactor * baseData.LatCutOff.CompFac * ...
+                    matRad_interp1(bixel.heteroCorr.fineGrid,alphaDoseConv(:,tissueClasses(i)),radDepths(ix),'extrap');
+                bixel.Z_Bij(ix) = conversionFactor * baseData.LatCutOff.CompFac * ...
+                    matRad_interp1(bixel.heteroCorr.fineGrid,sqrtBetaDoseConv(:,tissueClasses(i)),radDepths(ix),'extrap');
+            end
+
         else
-            baseData.alphaDose = baseData.Z .* baseData.alpha;
-            baseData.sqrtBetaDose = baseData.Z .* sqrt(baseData.beta);
+            matRad_cfg.dispError('Error in RBE bixel calculation.');
         end
 
-        % alpha beta convolution
-        alphaDose = matRad_interp1(bixel.heteroCorr.coarseGrid,baseData.alphaDose,bixel.heteroCorr.fineGrid,'extrap');
-        alphaDose(isnan(alphaDose)) = 0;
-        sqrtBetaDose = matRad_interp1(bixel.heteroCorr.coarseGrid,baseData.sqrtBetaDose,bixel.heteroCorr.fineGrid,'extrap');
-        sqrtBetaDose(isnan(sqrtBetaDose)) = 0;
-        
-        alphaDoseConv = zeros(size(alphaDose));
-        sqrtBetaDoseConv = zeros(size(alphaDose));
-        for i = 1:size(alphaDose,2)
-            alphaDoseConv(:,i) = conv(alphaDose(:,1),bixel.heteroCorr.Gauss,'same');
-            sqrtBetaDoseConv(:,i) = conv(sqrtBetaDose(:,i),bixel.heteroCorr.Gauss,'same');
+        if any(isnan(bixel.Z_Aij(:))) || all(bixel.Z_Aij(:) == 0)
+            matRad_cfg.dispError('unexpected NaN or all zero detected in heterogeneity convolution.')
         end
-        for i = 1:numel(tissueClasses)
-            ix = vTissueIndex == tissueClasses(i);
-            bixel.Z_Aij(ix) = conversionFactor * baseData.LatCutOff.CompFac * ...
-                matRad_interp1(bixel.heteroCorr.fineGrid,alphaDoseConv(:,tissueClasses(i)),radDepths(ix));
-            bixel.Z_Bij(ix) = conversionFactor * baseData.LatCutOff.CompFac * ...
-                matRad_interp1(bixel.heteroCorr.fineGrid,sqrtBetaDoseConv(:,tissueClasses(i)),radDepths(ix));
-        end
-
-    else
-        matRad_cfg.dispError('Error in RBE bixel calculation.');
+    end
+else
+    if ~isempty(heteroCorrDepths)
+        matRad_cfg.dispWarning('calcParticleDoseBixel: heterogeneity correction enabled but no APM base data was loaded.')
     end
 end
-
 
 
 % check if we have valid dose values

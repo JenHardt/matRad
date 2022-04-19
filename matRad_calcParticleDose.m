@@ -316,8 +316,10 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                         machine.meta.SAD, ...
                         find(~isnan(radDepthVdoseGrid{1})), ...
                         maxLateralCutoffDoseCalc);
+                end
 
-                    radDepths = radDepthVdoseGrid{1}(ix);
+                if pln.propHeterogeneity.calcHetero
+                    heteroCorrDepths = heteroCorrDepthV{1}(ix);
                 end
 
                 % just use tissue classes of voxels found by ray tracer
