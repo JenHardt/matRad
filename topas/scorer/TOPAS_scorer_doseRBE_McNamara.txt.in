@@ -1,6 +1,5 @@
 
 # McNamara proton RBE scorer
-sv:Sc/CellLines     		= 1 "CellLineGeneric"
 
 s:Sc/McNamaraAlpha/Quantity                   = "RBE_McNamara"
 s:Sc/McNamaraAlpha/Component                  = "Patient"
@@ -21,9 +20,3 @@ b:Sc/McNamaraBeta/SimultaneousExposure       = Sc/SimultaneousExposure
 s:Sc/McNamaraBeta/OutputType                 = Sim/DoseScorerOutputType
 s:Sc/McNamaraBeta/OutputFile                 = Sim/ScoreLabel + "_beta_MCN"
 s:Sc/McNamaraBeta/IfOutputFileAlreadyExists  = "Overwrite"
-
-
-### Biological Parameters ###
-d:Sc/CellLineGeneric/Alphax 		= Sc/AlphaX /Gy
-d:Sc/CellLineGeneric/Betax 		= Sc/BetaX /Gy2
-d:Sc/CellLineGeneric/AlphaBetaRatiox 	= Sc/AlphaBetaX Gy

@@ -13,7 +13,15 @@ load([folder filesep 'MCparam.mat']);
 correctionFactor = 1e6 / double(MCparam.nbHistoriesTotal); %double(MCparam.nbParticlesTotal) / double(MCparam.nbHistoriesTotal);
 
 cubeDim = MCparam.imageCubeDim;
-MCparam.tallies = unique(MCparam.tallies);
+% load in all data
+switch MCparam.outputType
+    case 'csv'
+        files = dir([folder filesep 'score_matRad_plan_field1_run1_*.csv']);
+        MCparam.tallies = cellfun(@(x) erase(x,{'score_matRad_plan_field1_run1_','.csv'}) ,{files(:).name} ,'UniformOutput' ,false);
+    case 'binary'
+        files = dir([folder filesep 'score_matRad_plan_field1_run1_*.bin']);
+        MCparam.tallies = cellfun(@(x) erase(x,{'score_matRad_plan_field1_run1_','.bin'}) ,{files(:).name} ,'UniformOutput' ,false);
+end
 
 if calcDoseDirect
     for t = 1:length(MCparam.tallies)

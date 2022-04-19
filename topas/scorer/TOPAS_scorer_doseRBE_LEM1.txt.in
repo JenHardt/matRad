@@ -1,6 +1,5 @@
 
 # LEM1 RBE scorer
-sv:Sc/CellLines     = 1 "CellGeneric_abR2"
 
 s:Sc/tabulatedAlpha/Quantity                   = "RBE_TabulatedAlphaBeta"
 s:Sc/tabulatedAlpha/Component                  = "Patient"
@@ -33,10 +32,6 @@ s:Sc/tabulatedBeta/ModelName                  = "HCP"
 #s:Sc/RBE/ModelName                  = "HCP"
 
 ### HCP Tabulated ###
-d:Sc/CellGeneric_abR2/Alphax 		= Sc/AlphaX /Gy
-d:Sc/CellGeneric_abR2/Betax 		= Sc/BetaX /Gy2
-#d:Sc/CellGeneric_abR2/AlphaBetaRatiox 	= Sc/AlphaBetaX Gy
-
 sv:Sc/CellGeneric_abR2/HCP/ParticleName 		= 6 "Proton" "Helium" "Lithium" "Beryllium" "Boron" "Carbon"
 iv:Sc/CellGeneric_abR2/HCP/ParticleZ    		= 6 1 2 3 4 5 6
 dv:Sc/CellGeneric_abR2/HCP/KineticEnergyPerNucleon 	= 47 0.1 0.15 0.2 0.3 0.4 0.5 0.7 1 1.2 1.5 2 2.5 3 4 5 6 7 8 10 12 15 20 25 30 40 50 60 70 80 90 100 120 130 135 150 195 200 250 270 300 330 400 500 600 700 800 1000 MeV

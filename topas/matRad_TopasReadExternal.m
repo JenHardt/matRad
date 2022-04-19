@@ -20,8 +20,10 @@ for f = 1:length(folders)
         topasConfig = MatRad_TopasConfig();
         topasCubes = matRad_readTopasData(currFolder);
 
-        load([folder filesep 'MCparam.mat']);
-        MCparam.tallies = unique(MCparam.tallies);
+        d = dir([currFolder filesep 'score_matRad_plan_field1_run1_*']);
+        [~,~,outputType] = fileparts(d(1).name);
+        files = dir([currFolder filesep 'score_matRad_plan_field1_run1_*' outputType]);
+        tallies = cellfun(@(x) erase(x,{'score_matRad_plan_field1_run1_', outputType}) ,{files(:).name} ,'UniformOutput' ,false);
 
         % check if all fields are filled.
         if any(structfun(@isempty, topasCubes)) || any(structfun(@(x) all(x(:)==0), topasCubes))
@@ -43,13 +45,13 @@ for f = 1:length(folders)
             end
         else
             for d = 1:dij.numOfBeams
-                doseFields = MCparam.tallies(contains(MCparam.tallies,'dose','IgnoreCase',true));
+                doseFields = tallies(contains(tallies,'dose','IgnoreCase',true));
                 for j = 1:numel(doseFields)
                     dij.(doseFields{j}){ctScen,1}(:,d)             = sum(w)*reshape(topasCubes.([doseFields{j} '_beam',num2str(d)]),[],1);
                     dij.([doseFields{j} '_std']){ctScen,1}(:,d)          = sum(w)*reshape(topasCubes.([doseFields{j} '_std_beam',num2str(d)]),[],1);
                 end
 
-                abFields = MCparam.tallies(contains(MCparam.tallies,{'alpha','beta','LET'},'IgnoreCase',true));
+                abFields = tallies(contains(tallies,{'alpha','beta','LET'},'IgnoreCase',true));
                 for j = 1:numel(abFields)
                     dij.(abFields{j}){ctScen,1}(:,d)        = reshape(topasCubes.([abFields{j} '_beam',num2str(d)]),[],1);
                 end
@@ -63,15 +65,15 @@ for f = 1:length(folders)
                 end
 
                 % Either dose to water or dose to medium (physical Dose) used to calculate alpha and sqrt(beta) doses
-                dij.mAlphaDose{ctScen,1}(:,d)           = dij.(['alpha_' model]){ctScen,1}(:,d) .* dij.physicalDose{ctScen,1}(:,d);             
+                dij.mAlphaDose{ctScen,1}(:,d)           = dij.(['alpha_' model]){ctScen,1}(:,d) .* dij.physicalDose{ctScen,1}(:,d);
                 dij.mSqrtBetaDose{ctScen,1}(:,d)        = sqrt(dij.(['beta_' model]){ctScen,1}(:,d)) .* dij.physicalDose{ctScen,1}(:,d);
-%                 dij.mAlphaDose{ctScen,1}(:,d)           = dij.(['alpha_' model]){ctScen,1}(:,d) .* dij.doseToWater{ctScen,1}(:,d);             
-%                 dij.mSqrtBetaDose{ctScen,1}(:,d)        = sqrt(dij.(['beta_' model]){ctScen,1}(:,d)) .* dij.physicalDose{ctScen,1}(:,d);
+                %                 dij.mAlphaDose{ctScen,1}(:,d)           = dij.(['alpha_' model]){ctScen,1}(:,d) .* dij.doseToWater{ctScen,1}(:,d);
+                %                 dij.mSqrtBetaDose{ctScen,1}(:,d)        = sqrt(dij.(['beta_' model]){ctScen,1}(:,d)) .* dij.physicalDose{ctScen,1}(:,d);
             end
         end
 
         if length(folders) > 1
-            outDose    = matRad_calcCubes(ones(dij.numOfBeams,1),dij,1);
+            outDose    = matRad_calcCubesMC(ones(dij.numOfBeams,1),dij,1);
             if ~exist('resultGUI')
                 for i = 1:dij.numOfBeams
                     beamInfo(i).suffix = ['_beam', num2str(i)];
@@ -105,7 +107,7 @@ for f = 1:length(folders)
     catch ME
         subFolder = strsplit(currFolder,'\');
         subFolder = subFolder{end};
-        matRad_cfg.dispError(['Error in folder "',subFolder,'": ',strjoin(strsplit(ME.message,'\'),'/')]);
+        matRad_cfg.dispError(['Error in line ' num2str(ME.stack(end).line) '\nError in folder "',subFolder,'": ',strjoin(strsplit(ME.message,'\'),'/')]);
     end
 end
 
