@@ -284,7 +284,7 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                 sigmaIniRay = matRad_calcSigmaIni(machine.data,stf(i).ray(j),stf(i).ray(j).SSD);
 
 
-                if strcmp(pbCalcMode, 'fineSampling')
+                if strcmp(pln.propDoseCalc.fineSampling.calcMode, 'fineSampling')
                     % Ray tracing for beam i and ray j
                     [ix,~,~,~,latDistsX,latDistsZ] = matRad_calcGeoDists(rot_coordsVdoseGrid, ...
                         stf(i).sourcePoint_bev, ...
@@ -297,13 +297,13 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                     % function provides the weights for the sub-pencil beams,
                     % their positions and their sigma used for dose calculation
                     for k = 1:stf(i).numOfBixelsPerRay(j) % loop over all bixels per ray
-                        if (fineSamplingSigmaSub < sigmaIniRay(k)) && (fineSamplingSigmaSub > 0)
+                        if (pln.propDoseCalc.fineSampling.sigmaSub < sigmaIniRay(k)) && (pln.propDoseCalc.fineSampling.sigmaSub > 0)
                             [finalWeight(:,k), sigmaSub(:,k), posX(:,k), posZ(:,k), numOfSub(:,k)] = ...
-                                matRad_calcWeights(sigmaIniRay(k), fineSamplingMethod, fineSamplingN, fineSamplingSigmaSub);
+                                matRad_calcWeights(sigmaIniRay(k), pln.propDoseCalc.fineSampling.method, pln.propDoseCalc.fineSampling.N, pln.propDoseCalc.fineSampling.sigmaSub);
                         else
-                            if (fineSamplingSigmaSub < 0)
+                            if (pln.propDoseCalc.fineSampling.sigmaSub < 0)
                                 matRad_cfg.dispError('Chosen fine sampling sigma cannot be negative!');
-                            elseif (fineSamplingSigmaSub > sigmaIniRay(k))
+                            elseif (pln.propDoseCalc.fineSampling.sigmaSub > sigmaIniRay(k))
                                 matRad_cfg.dispError('Chosen fine sampling sigma is too high for defined plan!');
                             end
                         end
@@ -375,7 +375,7 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                     offsetRadDepth = machine.data(energyIx).offset - (stf(i).ray(j).rangeShifter(k).eqThickness + dR);
 
                     %Fine Sampling coordinate projections
-                    if strcmp(pbCalcMode, 'fineSampling')
+                    if strcmp(pln.propDoseCalc.fineSampling.calcMode, 'fineSampling')
 
                         % calculate projected coordinates for fine sampling of
                         % each beamlet
@@ -390,7 +390,7 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                             if pln.multScen.scenMask(ctScen,shiftScen,rangeShiftScen)
 
                                 %Fine Sampling radiological depths
-                                if strcmp(pbCalcMode, 'fineSampling')
+                                if strcmp(pln.propDoseCalc.fineSampling.calcMode, 'fineSampling')
 
                                     % interpolate radiological depths at projected
                                     % coordinates
@@ -468,7 +468,7 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
 
                                 end
 
-                                if strcmp(pbCalcMode, 'fineSampling')
+                                if strcmp(pln.propDoseCalc.fineSampling.calcMode, 'fineSampling')
                                     % initialise empty dose array
                                     totalDose = zeros(size(currIx,1),1);
 
@@ -481,11 +481,12 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                                     % run over components
                                     for c = 1:numOfSub(k)
                                         tmpDose = zeros(size(currIx,1),1);
-                                        bixelDose = finalWeight(c,k).*matRad_calcParticleDoseBixel(...
+                                        bixel = matRad_calcParticleDoseBixel(...
                                             radDepths(currIx(:,:,c),1,c), ...
                                             currRadialDist_sq(currIx(:,:,c),:,c), ...
                                             sigmaSub(k)^2, ...
                                             machine.data(energyIx));
+                                        bixelDose = finalWeight(c,k).* bixel.physDose;
 
                                         tmpDose(currIx(:,:,c)) = bixelDose;
                                         totalDose = totalDose + tmpDose;
