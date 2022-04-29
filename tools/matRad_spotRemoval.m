@@ -1,20 +1,22 @@
-function [dij,stf] = matRad_spotRemoval(dij,w,stf,thres)
-% matRad postprosseing function accounting for
-%       minimum number of particles per spot
-%       minimum number of particles per iso-energy slice
+function [dij,stf] = matRad_spotRemovalDij(dij,w,varargin)
+% matRad spot removal tool
 %
 % call
-%   resultGUI =  matRad_postprocessing(resultGUI, dij, pln, cst, stf)
-
+%   dij =           matRad_spotRemoval(dij,w)
+%   [dij,stf] =     matRad_spotRemoval(dij,w,stf)
+%   machine = matRad_getAlphaBetaCurves(machine,cst,modelName,overrideAB)
+% Example full call for protons
+%   machine = matRad_getAlphaBetaCurves(machine,pln,cst,'MCN','override')
 % input
-%   resultGUI   struct containing optimized fluence vector
-%   dij:        matRad dij struct
-%   pln:        matRad pln struct
-%   cst:        matRad cst struct
-%   stf:        matRad stf struct
+%   machine:                matRad machine file to change
+%   varargin (optional):    cst:        matRad cst struct (for custom alpha/beta,
+%                                       otherwise default is alpha=0.1, beta=0.05;
+%                           modelName:  specify RBE modelName
+%                   	    overrideAB: calculate new alpha beta even if available
+%                                       and override
 %
 % output
-%   resultGUI:  new w and doses in resultGUI
+%   machine:                updated machine file with alpha/beta curves
 %
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -32,15 +34,34 @@ function [dij,stf] = matRad_spotRemoval(dij,w,stf,thres)
 
 matRad_cfg = MatRad_Config.instance();
 
-if nargin < 3 && nargout > 1
-    matRad_cfg.dispError('stf is missing as input')
+if exist('stf','var') && nargout > 1
+    calcStf = true;
 end
 
 % set threshold for spot removal to 3% of the mean weight.
+if ~isempty(varargin)
+    for i = 1:nargin-2
+        if isstruct(varargin{i})
+            stf = varargin{i};
+        elseif isscalar(varargin{i})
+            thres = varargin{i};
+        end
+    end
+end
+
 if ~exist('thres','var')
     thres = 0.03;
 end
+
+
 newSpots = w>thres*mean(w);
+
+
+
+
+
+
+
 
 if ((sum(newSpots) ~= numel(w)) && sum(newSpots) ~= dij.totalNumOfBixels) && any(size(w)>1)
     dij.cutWeights = w(newSpots);
@@ -66,7 +87,7 @@ if ((sum(newSpots) ~= numel(w)) && sum(newSpots) ~= dij.totalNumOfBixels) && any
         currBixelsInRay = dij.bixelNum(beamNumIdx(b)+1:beamNumIdx(b+1));
         [rayCnt,rayIdx] = unique(currRaysInBeam);
         
-        if exist('stf')
+        if calcStf
             numOfBixelsPerRay = groupcounts(currRaysInBeam);
             cutRays = ismember([1:dij.numOfRaysPerBeam(b)]',rayCnt);
             if any(~cutRays)
