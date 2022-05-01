@@ -32,6 +32,8 @@ classdef MatRad_spotRemovalDij < handle
         newSpots;
         newWeights;
 
+        numOfRemovedSpots;
+
     end
 
     methods
@@ -93,6 +95,7 @@ classdef MatRad_spotRemovalDij < handle
                     obj.matRad_cfg.dispWarning(['Removal mode ' obj.removalMode ' not implemented, no spots have been removed.']);
             end
 
+            obj.numOfRemovedSpots = sum(~obj.newSpots);
             obj.newWeights = obj.weights(obj.newSpots);
 
         end
