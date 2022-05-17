@@ -1,4 +1,4 @@
-function [dij,stf] = matRad_spotRemovalDij(dij,w,varargin)
+function [dij,stf] = matRad_spotRemoval(dij,w,varargin)
 % matRad spot removal tool
 %
 % call
@@ -34,10 +34,6 @@ function [dij,stf] = matRad_spotRemovalDij(dij,w,varargin)
 
 matRad_cfg = MatRad_Config.instance();
 
-if exist('stf','var') && nargout > 1
-    calcStf = true;
-end
-
 % set threshold for spot removal to 3% of the mean weight.
 if ~isempty(varargin)
     for i = 1:nargin-2
@@ -53,6 +49,10 @@ if ~exist('thres','var')
     thres = 0.03;
 end
 
+
+if exist('stf','var') && nargout > 1
+    calcStf = true;
+end
 
 newSpots = w>thres*mean(w);
 

@@ -23,11 +23,13 @@ classdef MatRad_spotRemovalDij < handle
         removalMode = 'relative'; % 'relative' is the only mode for now
         propSpotRemoval;
 
+        % nicht als properties
         dij;
         cst;
         pln;
         stf;
 
+        
         weights;
         newSpots;
         newWeights;
