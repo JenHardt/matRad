@@ -47,7 +47,6 @@ end
 
 pln.propDoseCalc.lateralCutOff = 0.99;
 pln.propDoseCalc.airOffsetCorrection = 1;
-pln.propDoseCalc.calcLET = 0;
 
 % retrieve scenarios for dose calculation and optimziation
 % pln = rmfield(pln,{'bioParam','multScen','DicomInfo'});
@@ -59,7 +58,7 @@ else
     pln.propDoseCalc.resolution = struct('x',3,'y',3,'z',3);
 end
 
-pln.propHeterogeneity.calcHetero = true;
+pln.propHeterogeneity.calcHetero = false;
 pln.propOpt.runDAO        = 0;
 pln.propOpt.runSequencing = 0;
 
