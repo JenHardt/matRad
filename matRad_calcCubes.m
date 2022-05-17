@@ -59,7 +59,7 @@ for i = 1:length(beamInfo)
 end
 
 % consider RBE for protons
-if isfield(dij,'RBE') && ~isfield(dij,'MC_tallies')
+if isfield(dij,'RBE') && (~isfield(dij,'MC_tallies') || isscalar(dij.RBE))
     for i = 1:length(beamInfo)
         resultGUI.(['RBExD', beamInfo(i).suffix]) = resultGUI.(['physicalDose', beamInfo(i).suffix]) * dij.RBE;
     end
@@ -89,36 +89,56 @@ end
 
 % consider biological optimization for carbon ions
 if isfield(dij,'mAlphaDose') && isfield(dij,'mSqrtBetaDose')
-    
+
     for i = 1:length(beamInfo)
-        
+
         wBeam = (resultGUI.w .* beamInfo(i).logIx);
-        
+
         ix = dij.bx(:,scenNum)~=0 & resultGUI.(['physicalDose', beamInfo(i).suffix])(:) > 0;
-        
+
         resultGUI.(['effect', beamInfo(i).suffix])       = full(dij.mAlphaDose{scenNum} * wBeam + (dij.mSqrtBetaDose{scenNum} * wBeam).^2);
         resultGUI.(['effect', beamInfo(i).suffix])       = reshape(resultGUI.(['effect', beamInfo(i).suffix]),dij.doseGrid.dimensions);
-        
+
         resultGUI.(['RBExD', beamInfo(i).suffix])        = zeros(size(resultGUI.(['effect', beamInfo(i).suffix])));
         resultGUI.(['RBExD', beamInfo(i).suffix])(ix)    = (sqrt(dij.ax(ix).^2 + 4 .* dij.bx(ix) .* resultGUI.(['effect', beamInfo(i).suffix])(ix)) - dij.ax(ix))./(2.*dij.bx(ix));
-        
+
         resultGUI.(['RBE', beamInfo(i).suffix])          = resultGUI.(['RBExD', beamInfo(i).suffix])./resultGUI.(['physicalDose', beamInfo(i).suffix]);
-        
+
         resultGUI.(['alpha', beamInfo(i).suffix])        = zeros(dij.doseGrid.dimensions);
         resultGUI.(['beta',  beamInfo(i).suffix])        = zeros(dij.doseGrid.dimensions);
-        
+        resultGUI.(['alphaDoseCube', beamInfo(i).suffix])        = zeros(dij.doseGrid.dimensions);
+        resultGUI.(['SqrtBetaDoseCube',  beamInfo(i).suffix])        = zeros(dij.doseGrid.dimensions);
+
         AlphaDoseCube                                    = full(dij.mAlphaDose{scenNum} * wBeam);
         resultGUI.(['alpha', beamInfo(i).suffix])(ix)    = AlphaDoseCube(ix)./resultGUI.(['physicalDose', beamInfo(i).suffix])(ix);
-        
+        resultGUI.(['alphaDoseCube', beamInfo(i).suffix])(ix)   = AlphaDoseCube(ix);
+
         SqrtBetaDoseCube                                 = full(dij.mSqrtBetaDose{scenNum} * wBeam);
         resultGUI.(['beta', beamInfo(i).suffix])(ix)     = (SqrtBetaDoseCube(ix)./resultGUI.(['physicalDose', beamInfo(i).suffix])(ix)).^2;
+        resultGUI.(['SqrtBetaDoseCube', beamInfo(i).suffix])(ix)   = SqrtBetaDoseCube(ix);
+
     end
-    
+
 end
 
 % Add non-processed MC tallies
 % Note that the tallies are already computed per beam and altogether
 if isfield(dij,'MC_tallies')
+    if contains(dij.MC_tallies,'doseToWater')
+        for i = 1:length(beamInfo)
+            resultGUI.(['doseToWater', beamInfo(i).suffix]) = reshape(full(dij.doseToWater{scenNum} * (resultGUI.w .* beamInfo(i).logIx)),dij.doseGrid.dimensions);
+            if isfield(dij,'doseToWater_std')
+                resultGUI.(['doseToWater_std', beamInfo(i).suffix]) = sqrt(reshape(full(dij.doseToWater_std{scenNum}.^2 * (resultGUI.w .* beamInfo(i).logIx)),dij.doseGrid.dimensions));
+            end
+        end
+    end
+    if contains(dij.MC_tallies,'MCN')
+        resultGUI.(['alpha_MCN', beamInfo(i).suffix])        = zeros(dij.doseGrid.dimensions);
+        resultGUI.(['beta_MCN',  beamInfo(i).suffix])        = zeros(dij.doseGrid.dimensions);
+
+        resultGUI.alpha_MCN = dij.alpha_MCN{scenNum} * wBeam;
+        resultGUI.beta_MCN  = dij.beta_MCN{scenNum} * wBeam;
+    end
     for f = 1:numel(dij.MC_tallies)
         tally = dij.MC_tallies{f};
         % skip tallies processed above
@@ -126,7 +146,7 @@ if isfield(dij,'MC_tallies')
             tallyCut = strsplit(tally,'_');
             if size(tallyCut,2) > 1
                 beamNum = str2num(cell2mat(regexp(tally,'\d','Match')));
-                resultGUI.(tally) = reshape(full(dij.(tallyCut{1}){scenNum}(:,beamNum)),dij.doseGrid.dimensions);
+                resultGUI.(tally) = reshape(full(dij.(strjoin({tallyCut{1:end-1}},'_')){scenNum}(:,beamNum)),dij.doseGrid.dimensions);
             else
                 resultGUI.(tally) = reshape(full(dij.(tally){scenNum} * wBeam),dij.doseGrid.dimensions);
             end
@@ -141,16 +161,16 @@ resultGUI = orderfields(resultGUI);
 if any(dij.ctGrid.dimensions~=dij.doseGrid.dimensions)
     myFields = fieldnames(resultGUI);
     for i = 1:numel(myFields)
-        
+
         if numel(resultGUI.(myFields{i})) == dij.doseGrid.numOfVoxels
-            
+
             % interpolate!
             resultGUI.(myFields{i}) = matRad_interp3(dij.doseGrid.x,dij.doseGrid.y',dij.doseGrid.z, ...
                 resultGUI.(myFields{i}), ...
                 dij.ctGrid.x,dij.ctGrid.y',dij.ctGrid.z,'linear',0);
-            
+
         end
-        
+
     end
 end
 

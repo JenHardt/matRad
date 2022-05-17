@@ -86,35 +86,37 @@ end
 dij.beamNum = [1:size(stf,2)]';
 
 % calc resulting dose
-if pln.multScen.totNumScen == 1
-    % calculate cubes; use uniform weights here, weighting with actual fluence
-    % already performed in dij construction
-    if size(dij.physicalDose{1},2) ~= pln.propStf.numOfBeams
-        matRad_cfg.dispWarning('Number of beams stored not the same as size of dij. Using singular weight for MC');
-        dij.numOfBeams = size(dij.physicalDose{1},2);
-    end
-    resultGUI    = matRad_calcCubes(ones(dij.numOfBeams,1),dij,1);
-
-    % calc individual scenarios
-else
-    Cnt          = 1;
-    ixForOpt     = find(~cellfun(@isempty, dij.physicalDose))';
-    for i = ixForOpt
-        tmpResultGUI = matRad_calcCubes(ones(size(dij.physicalDose{i},2),1),dij,i);
-        if i == 1
-            resultGUI.([pln.bioParam.quantityVis]) = tmpResultGUI.(pln.bioParam.quantityVis);
+if ~pln.propMC.externalCalculation
+    if pln.multScen.totNumScen == 1
+        % calculate cubes; use uniform weights here, weighting with actual fluence
+        % already performed in dij construction
+        if size(dij.physicalDose{1},2) ~= pln.propStf.numOfBeams
+            matRad_cfg.dispWarning('Number of beams stored not the same as size of dij. Using singular weight for MC');
+            dij.numOfBeams = size(dij.physicalDose{1},2);
         end
-        resultGUI.([pln.bioParam.quantityVis '_' num2str(Cnt,'%d')]) = tmpResultGUI.(pln.bioParam.quantityVis);
-        resultGUI.phaseDose{1,i} = tmpResultGUI.(pln.bioParam.quantityVis);
-        Cnt = Cnt + 1;
+        resultGUI    = matRad_calcCubesMC(ones(dij.numOfBeams,1),dij,1);
+
+        % calc individual scenarios
+    else
+        Cnt          = 1;
+        ixForOpt     = find(~cellfun(@isempty, dij.physicalDose))';
+        for i = ixForOpt
+            tmpResultGUI = matRad_calcCubes(ones(size(dij.physicalDose{i},2),1),dij,i);
+            if i == 1
+                resultGUI.([pln.bioParam.quantityVis]) = tmpResultGUI.(pln.bioParam.quantityVis);
+            end
+            resultGUI.([pln.bioParam.quantityVis '_' num2str(Cnt,'%d')]) = tmpResultGUI.(pln.bioParam.quantityVis);
+            resultGUI.phaseDose{1,i} = tmpResultGUI.(pln.bioParam.quantityVis);
+            Cnt = Cnt + 1;
+        end
+
     end
 
-end
-
-if pln.multScen.totNumScen ~= 1
-    resultGUI.accPhysicalDose = zeros(size(resultGUI.phaseDose{1}));
-    for i = 1:pln.multScen.totNumScen
-        resultGUI.accPhysicalDose = resultGUI.accPhysicalDose + resultGUI.phaseDose{i};
+    if pln.multScen.totNumScen ~= 1
+        resultGUI.accPhysicalDose = zeros(size(resultGUI.phaseDose{1}));
+        for i = 1:pln.multScen.totNumScen
+            resultGUI.accPhysicalDose = resultGUI.accPhysicalDose + resultGUI.phaseDose{i};
+        end
     end
 end
 % remember original fluence weights and histories, if applicable

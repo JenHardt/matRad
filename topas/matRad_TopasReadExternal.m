@@ -65,8 +65,8 @@ for f = 1:length(folders)
                 end
 
                 % Either dose to water or dose to medium (physical Dose) used to calculate alpha and sqrt(beta) doses
-                dij.mAlphaDose{ctScen,1}(:,d)           = dij.(['alpha_' model]){ctScen,1}(:,d) .* dij.physicalDose{ctScen,1}(:,d);
-                dij.mSqrtBetaDose{ctScen,1}(:,d)        = sqrt(dij.(['beta_' model]){ctScen,1}(:,d)) .* dij.physicalDose{ctScen,1}(:,d);
+                dij.(['mAlphaDose_' model]){ctScen,1}(:,d)           = dij.(['alpha_' model]){ctScen,1}(:,d) .* dij.physicalDose{ctScen,1}(:,d);
+                dij.(['mSqrtBetaDose_' model]){ctScen,1}(:,d)        = sqrt(dij.(['beta_' model]){ctScen,1}(:,d)) .* dij.physicalDose{ctScen,1}(:,d);
                 %                 dij.mAlphaDose{ctScen,1}(:,d)           = dij.(['alpha_' model]){ctScen,1}(:,d) .* dij.doseToWater{ctScen,1}(:,d);
                 %                 dij.mSqrtBetaDose{ctScen,1}(:,d)        = sqrt(dij.(['beta_' model]){ctScen,1}(:,d)) .* dij.physicalDose{ctScen,1}(:,d);
             end
@@ -74,6 +74,10 @@ for f = 1:length(folders)
 
         if length(folders) > 1
             outDose    = matRad_calcCubesMC(ones(dij.numOfBeams,1),dij,1);
+%             if any(contains(fieldnames(outDose),'alpha'))
+%                 names = fieldnames(outDose);
+%                 alphaFields = names((contains(names,{'alpha','beta','effect','RBE'}) + ~contains(names,{'RBExD'})) > 1);
+%             end
             if ~exist('resultGUI')
                 for i = 1:dij.numOfBeams
                     beamInfo(i).suffix = ['_beam', num2str(i)];
@@ -81,26 +85,26 @@ for f = 1:length(folders)
                 beamInfo(dij.numOfBeams+1).suffix = '';
                 for i = 1:length(beamInfo)
                     resultGUI.(['physicalDose', beamInfo(i).suffix]) = zeros(dij.ctGrid.dimensions);
-                    resultGUI.(['RBExD', beamInfo(i).suffix]) = zeros(dij.ctGrid.dimensions);
-
-                    resultGUI.(['alpha', beamInfo(i).suffix]) = {};
-                    resultGUI.(['beta', beamInfo(i).suffix]) = {};
-                    resultGUI.(['RBE', beamInfo(i).suffix]) = {};
-                    resultGUI.(['effect', beamInfo(i).suffix]) = {};
+                    if any(contains(fieldnames(outDose),'alpha'))
+                        resultGUI.(['RBExD_' model beamInfo(i).suffix]) = zeros(dij.ctGrid.dimensions);
+                    end
+% 
+%                     for k = 1:length(alphaFields)
+%                         resultGUI.(alphaFields{k}) = cell(1,length(folders));
+%                     end
+                    resultGUI = orderfields(resultGUI);
                 end
             end
 
             for i = 1:length(beamInfo)
                 resultGUI.(['physicalDose', beamInfo(i).suffix]) = resultGUI.(['physicalDose', beamInfo(i).suffix]) + outDose.(['physicalDose', beamInfo(i).suffix])/length(folders);
-                if isfield(outDose,'alpha')
-                    resultGUI.(['RBExD', beamInfo(i).suffix]) = resultGUI.(['RBExD', beamInfo(i).suffix]) + outDose.(['RBExD', beamInfo(i).suffix])/length(folders);
-                    resultGUI.(['alpha', beamInfo(i).suffix]){f} = outDose.(['alpha', beamInfo(i).suffix]);
-                    resultGUI.(['beta', beamInfo(i).suffix]){f} = outDose.(['beta', beamInfo(i).suffix]);
-                    resultGUI.(['RBE', beamInfo(i).suffix]){f} = outDose.(['RBE', beamInfo(i).suffix]);
-                    resultGUI.(['effect', beamInfo(i).suffix]){f} = outDose.(['effect', beamInfo(i).suffix]);
+            end                
+            if any(contains(fieldnames(outDose),'alpha'))
+                for i = 1:length(beamInfo)
+                    resultGUI.(['RBExD_' model beamInfo(i).suffix]) = resultGUI.(['RBExD_' model beamInfo(i).suffix]) + outDose.(['RBExD_' model beamInfo(i).suffix])/length(folders);
                 end
-                resultGUI.samples = f;
             end
+            resultGUI.samples = f;
         else
             resultGUI    = matRad_calcCubesMC(ones(dij.numOfBeams,1),dij,1);
         end

@@ -59,7 +59,7 @@ classdef MatRad_TopasConfig < handle
             'addSection','none',... %'none','lung','poisson','sampledDensities' (the last 2 only with modulation)
             'addTitanium',false,... %'false','true' (can only be used with advanced HUsections)
             'HUSection','advanced',... %'default','advanced'
-            'HUToMaterial','advanced',... %'default',','advanced','MCsquare'
+            'HUToMaterial','default',... %'default',','advanced','MCsquare'
             'loadConverterFromFile',false); % set true if you want to use your own SchneiderConverter written in "TOPAS_SchneiderConverter"
 
         arrayOrdering = 'F'; %'C';

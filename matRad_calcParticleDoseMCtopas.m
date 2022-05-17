@@ -258,34 +258,43 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                     dij.MC_tallies = fnames;
                     
                     if calcDoseDirect
-                        if isfield(topasCubes,'physicalDose')
+                        if any(contains(fnames,'physicalDose'))
                             for d = 1:length(stf)
                                 dij.physicalDose{ctScen,1}(:,d)    = sum(w)*reshape(topasCubes.(['physicalDose_beam',num2str(d)]),[],1);
                             end
                         end
-                        if isfield(topasCubes,'doseToWater')
+                        if any(contains(fnames,'doseToWater'))
                             for d = 1:length(stf)
                                 dij.doseToWater{ctScen,1}(:,d)    = sum(w)*reshape(topasCubes.(['doseToWater_beam',num2str(d)]),[],1);
                             end
                         end    
-                        if isfield(topasCubes,'alpha_beam1')
-                            for d = 1:length(stf)
-                                dij.alpha{ctScen,1}(:,d)           = reshape(topasCubes.(['alpha_beam',num2str(d)]),[],1);
-                                dij.beta{ctScen,1}(:,d)            = reshape(topasCubes.(['beta_beam',num2str(d)]),[],1);
-                                
-                                [dij.ax,dij.bx] = matRad_getPhotonLQMParameters(cst,dij.doseGrid.numOfVoxels,1,VdoseGrid);
-                                dij.abx(dij.bx>0) = dij.ax(dij.bx>0)./dij.bx(dij.bx>0);
-                                
-                                dij.mAlphaDose{ctScen,1}(:,d)      = dij.physicalDose{ctScen,1}(:,d) .* dij.alpha{ctScen,1}(:,d);
-                                dij.mSqrtBetaDose{ctScen,1}(:,d)   = sqrt(dij.physicalDose{ctScen,1}(:,d)) .* dij.beta{ctScen,1}(:,d);
+                        if any(contains(fnames,'alpha'))
+                            abFields = fnames(contains(fnames,{'alpha','beta'}));
+                            for ab = 1:length(abFields)
+                                model = strsplit(abFields{ab},'_');
+                                models{ab} = char(model(2));
+                            end
+                            models = unique(models);
+
+                            for m = 1:length(models)
+                                for d = 1:length(stf)
+                                    dij.(['alpha_' models{m}]){ctScen,1}(:,d)           = reshape(topasCubes.(['alpha_' models{m} '_beam',num2str(d)]),[],1);
+                                    dij.(['beta_' models{m}]){ctScen,1}(:,d)           = reshape(topasCubes.(['beta_' models{m} '_beam',num2str(d)]),[],1);
+
+                                    [dij.ax,dij.bx] = matRad_getPhotonLQMParameters(cst,dij.doseGrid.numOfVoxels,1,VdoseGrid);
+                                    dij.abx(dij.bx>0) = dij.ax(dij.bx>0)./dij.bx(dij.bx>0);
+
+                                    dij.(['mAlphaDose_' models{m}]){ctScen,1}(:,d)      = dij.physicalDose{ctScen,1}(:,d) .* dij.(['alpha_' models{m}]){ctScen,1}(:,d);
+                                    dij.(['mSqrtBetaDose_' models{m}]){ctScen,1}(:,d)   = sqrt(dij.physicalDose{ctScen,1}(:,d)) .* dij.(['beta_' models{m}]){ctScen,1}(:,d);
+                                end
                             end
                         end
-                        if isfield(topasCubes,'physicalDose_std_beam1')
+                        if any(contains(fnames,'physicalDose_std'))
                             for d = 1:length(stf)
                                 dij.physicalDose_std{ctScen,1}(:,d)    = sum(w)*reshape(topasCubes.(['physicalDose_std_beam',num2str(d)]),[],1);
                             end
                         end        
-                        if isfield(topasCubes,'LET')
+                        if any(contains(fnames,'LET'))
                             for d = 1:length(stf)
                                 dij.LET{ctScen,1}(:,d)    = reshape(topasCubes.(['LET_beam',num2str(d)]),[],1);
                                 dij.mLETDose{ctScen,1}(:,d) = dij.physicalDose{ctScen,1}(:,d) .*  dij.LET{ctScen,1}(:,d);

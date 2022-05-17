@@ -95,7 +95,7 @@ if any(contains(dij.MC_tallies,'alpha'))
         wBeam = (resultGUI.w .* beamInfo(i).logIx);
         ix = dij.bx(:,scenNum)~=0 & resultGUI.(['physicalDose', beamInfo(i).suffix])(:) > 0;
 
-        if i < 3
+        if i < 4
             abFields = fnames(contains(fnames,{'alpha','beta'}));
             for j = 1:numel(abFields)
                 resultGUI.([abFields{j}, beamInfo(i).suffix])       = reshape(full(dij.(abFields{j}){scenNum} * beamInfo(i).logIx),dij.doseGrid.dimensions);
@@ -103,14 +103,21 @@ if any(contains(dij.MC_tallies,'alpha'))
             end
         end
 
-        resultGUI.(['effect', beamInfo(i).suffix])       = full(dij.mAlphaDose{scenNum} * wBeam + (dij.mSqrtBetaDose{scenNum} * wBeam).^2);
-        resultGUI.(['effect', beamInfo(i).suffix])       = reshape(resultGUI.(['effect', beamInfo(i).suffix]),dij.doseGrid.dimensions);
+        for ab = 1:length(abFields)
+            model = strsplit(abFields{ab},'_');
+            models{ab} = char(model(2));
+        end
+        models = unique(models);
 
-        resultGUI.(['RBExD', beamInfo(i).suffix])        = zeros(size(resultGUI.(['effect', beamInfo(i).suffix])));
-        resultGUI.(['RBExD', beamInfo(i).suffix])(ix)    = (sqrt(dij.ax(ix).^2 + 4 .* dij.bx(ix) .* resultGUI.(['effect', beamInfo(i).suffix])(ix)) - dij.ax(ix))./(2.*dij.bx(ix));
+        for m = 1:length(models)
+        resultGUI.(['effect_' models{m} beamInfo(i).suffix])       = full(dij.(['mAlphaDose_' models{m}]){scenNum} * wBeam + (dij.(['mSqrtBetaDose_' models{m}]){scenNum} * wBeam).^2);
+        resultGUI.(['effect_' models{m} beamInfo(i).suffix])       = reshape(resultGUI.(['effect_' models{m} beamInfo(i).suffix]),dij.doseGrid.dimensions);
 
-        resultGUI.(['RBE', beamInfo(i).suffix])          = resultGUI.(['RBExD', beamInfo(i).suffix])./resultGUI.(['physicalDose', beamInfo(i).suffix]);        
- 
+        resultGUI.(['RBExD_' models{m} beamInfo(i).suffix])        = zeros(size(resultGUI.(['effect_' models{m} beamInfo(i).suffix])));
+        resultGUI.(['RBExD_' models{m} beamInfo(i).suffix])(ix)    = (sqrt(dij.ax(ix).^2 + 4 .* dij.bx(ix) .* resultGUI.(['effect_' models{m} beamInfo(i).suffix])(ix)) - dij.ax(ix))./(2.*dij.bx(ix));
+
+        resultGUI.(['RBE_' models{m} beamInfo(i).suffix])          = resultGUI.(['RBExD_' models{m} beamInfo(i).suffix])./resultGUI.(['physicalDose', beamInfo(i).suffix]);        
+        end
     end
 end
 
