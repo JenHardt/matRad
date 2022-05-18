@@ -1,4 +1,4 @@
-function [ctR,cst] = matRad_resampleTopasGrid(ct,cst,pln,stf)
+function [ctR,cst,stf] = matRad_resampleTopasGrid(ct,cst,pln,stf)
 matRad_cfg = MatRad_Config.instance();
 
 if isfield(ct,'modulated') && ct.modulated

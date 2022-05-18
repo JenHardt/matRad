@@ -66,7 +66,7 @@ matRad_cfg.logLevel = 1;
 
 switch pln.propHeterogeneity.sampling.mode
     case 'TOPAS'
-        [ctR,cstR] = matRad_resampleTopasGrid(ct,cst,pln,stf);
+        [ctR,cstR,stfR] = matRad_resampleTopasGrid(ct,cst,pln,stf);
     case 'matRad'
         ctR = ct;
         cstR = cst;
@@ -104,7 +104,7 @@ for i = 1:samples
             pln.propMC.proton_engine = 'TOPAS';
             pln.propMC.numOfRuns = 1;
             pln.propHeterogeneity.sampling.histories = histories/samples;
-            resultGUI_mod = matRad_calcDoseDirectMC(ct_mod,stf,pln,cstR,weights);
+            resultGUI_mod = matRad_calcDoseDirectMC(ct_mod,stfR,pln,cstR,weights);
 
             if ~calcExternal
                 %     resultGUI.(['physicalDose',num2str(s)]) = resultGUI.(['physicalDose',num2str(s)]) + resultGUI_mod.physicalDose/s;
