@@ -1,4 +1,4 @@
-function dataOut2 = matRad_readBinData(binFile,cubeDim)
+function dataOut = matRad_readBinData(binFile,cubeDim)
 fID = fopen(binFile);
 data = fread(fID,inf,'double');
 fclose(fID);
@@ -12,6 +12,5 @@ if rem(numel(data),prod(cubeDim))==0
 else
     error('bin data contains an odd number of entries.')
 end
-dataOut2 = dataOut{1};
 
 end

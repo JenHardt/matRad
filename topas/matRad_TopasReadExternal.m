@@ -44,6 +44,9 @@ for f = 1:length(folders)
                 for j = 1:numel(doseFields)
                     dij.(doseFields{j}){ctScen,1}(:,d)             = sum(w)*reshape(topasCubes.([doseFields{j} '_beam',num2str(d)]),[],1);
                     dij.([doseFields{j} '_std']){ctScen,1}(:,d)          = sum(w)*reshape(topasCubes.([doseFields{j} '_std_beam',num2str(d)]),[],1);
+                    if any(contains(fieldnames(topasCubes),'batchStd'))
+                        dij.([doseFields{j} '_batchStd']){ctScen,1}(:,d)          = sum(w)*reshape(topasCubes.([doseFields{j} '_batchStd_beam',num2str(d)]),[],1);
+                    end
                 end
         end
         

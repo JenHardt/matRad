@@ -64,6 +64,11 @@ if isfield(dij,'physicalDose_std')
         resultGUI.(['physicalDose_std', beamInfo(i).suffix]) = sqrt(reshape(full(dij.physicalDose_std{scenNum}.^2 * (resultGUI.w .* beamInfo(i).logIx)),dij.doseGrid.dimensions));
     end
 end
+if isfield(dij,'physicalDose_batchStd')
+    for i = 1:length(beamInfo)
+        resultGUI.(['physicalDose_batchStd', beamInfo(i).suffix]) = sqrt(reshape(full(dij.physicalDose_batchStd{scenNum}.^2 * (resultGUI.w .* beamInfo(i).logIx)),dij.doseGrid.dimensions));
+    end
+end
 
 % compute doseToWater analogously
 if isfield(dij,'doseToWater')
@@ -74,6 +79,11 @@ end
 if isfield(dij,'doseToWater_std')
     for i = 1:length(beamInfo)
         resultGUI.(['doseToWater_std', beamInfo(i).suffix]) = sqrt(reshape(full(dij.doseToWater_std{scenNum}.^2 * (resultGUI.w .* beamInfo(i).logIx)),dij.doseGrid.dimensions));
+    end
+end
+if isfield(dij,'doseToWater_batchStd')
+    for i = 1:length(beamInfo)
+        resultGUI.(['doseToWater_batchStd', beamInfo(i).suffix]) = sqrt(reshape(full(dij.doseToWater_batchStd{scenNum}.^2 * (resultGUI.w .* beamInfo(i).logIx)),dij.doseGrid.dimensions));
     end
 end
 

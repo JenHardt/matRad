@@ -30,7 +30,6 @@ if calcDoseDirect
         SumVarOverFields = zeros(cubeDim(1),cubeDim(2),cubeDim(3));
         
         for f = 1:MCparam.nbFields
-            topasSum = zeros(cubeDim(1),cubeDim(2),cubeDim(3));
             topasMeanDiff = zeros(cubeDim(1),cubeDim(2),cubeDim(3));
             for k = 1:MCparam.nbRuns
                 genFileName = sprintf('score_%s_field%d_run%d_%s',MCparam.simLabel,f,k,tname);
@@ -40,23 +39,30 @@ if calcDoseDirect
                         data{k} = matRad_readCsvData(genFullFile,cubeDim);
                     case 'binary'
                         genFullFile = fullfile(folder,[genFileName '.bin']);
-                        %                         if iscell(MCparam.scoreReportQuantity)
-                        %                             [data{k},topasStd] = matRad_readBinData(genFullFile,cubeDim,numel(MCparam.scoreReportQuantity));
-                        %                         else
-                        data{k} = matRad_readBinData(genFullFile,cubeDim);
+                        dataRead = matRad_readBinData(genFullFile,cubeDim);
+                        
+                        for i = 1:length(MCparam.scoreReportQuantity)
+                            data.(MCparam.scoreReportQuantity{i}){k} = dataRead{i};
+                        end
                         %                         end
                     otherwise
                         error('Not implemented!');
                 end
-                topasSum = topasSum + data{k};
+%                 topasSum = topasSum + data{k};
             end
             
+            for i = 1:length(MCparam.scoreReportQuantity)
+                topasSum.(MCparam.scoreReportQuantity{i}) = sum(cat(4,data.(MCparam.scoreReportQuantity{i}){:}),4);
+            end
+
             if contains(tname,'dose','IgnoreCase',true)
-                topasSum = correctionFactor.*topasSum;
-                
+                for i = 1:length(MCparam.scoreReportQuantity)
+                    topasSum.(MCparam.scoreReportQuantity{i}) = correctionFactor .* topasSum.(MCparam.scoreReportQuantity{i});
+                end
+               
                 % Calculate Standard Deviation from batches
                 for k = 1:MCparam.nbRuns
-                    topasMeanDiff = topasMeanDiff + (data{k} - topasSum./MCparam.nbRuns).^2;
+                    topasMeanDiff = topasMeanDiff + (data.Sum{k} - topasSum.Sum ./ MCparam.nbRuns).^2;
                 end
                 % variance of the mean
                 topasVarMean = topasMeanDiff./(MCparam.nbRuns - 1)./MCparam.nbRuns;
@@ -66,32 +72,30 @@ if calcDoseDirect
                 topasStdSum = topasStdMean * MCparam.nbRuns;
                 topasVarSum = topasStdSum.^2;
                 
-                topasCube.([tname '_std_beam' num2str(f)]) = topasStdSum;
+                topasCube.([tname '_batchStd_beam' num2str(f)]) = topasStdSum;
                 
                 SumVarOverFields = SumVarOverFields + topasVarSum;
-            elseif contains(tname,'alpha','IgnoreCase',true) || contains(tname,'beta','IgnoreCase',true) || contains(tname,'RBE','IgnoreCase',true) || contains(tname,'LET','IgnoreCase',true)
-                topasSum = topasSum./ MCparam.nbRuns;
+            elseif contains(tname,'alpha','IgnoreCase',true) || contains(tname,'beta','IgnoreCase',true) || contains(tname,'RBE','IgnoreCase',true) || contains(tname,'LET','IgnoreCase',true)               
+                for i = 1:length(MCparam.scoreReportQuantity)
+                    topasSum.(MCparam.scoreReportQuantity{i}) = topasSum.(MCparam.scoreReportQuantity{i}) ./ MCparam.nbRuns;
+                end
             end
             
-            % Accumulate over the fields
-            topasTally = topasTally + topasSum;
             % Tally per field
-            topasCube.([tname '_beam' num2str(f)]) = topasSum;
+            if isfield(topasSum,'Sum')
+                topasCube.([tname '_beam' num2str(f)]) = topasSum.Sum;
+            end
+            if isfield(topasSum,'Standard_Deviation')
+                topasCube.([tname '_std_beam' num2str(f)]) = topasSum.Standard_Deviation;
+            end
             
         end
-%         if contains(tname,'dose','IgnoreCase',true)
-%             topasCube.([tname '_std']) = sqrt(SumVarOverFields);
-%         end
-%         if ~(contains(tname,'alpha','IgnoreCase',true) || contains(tname,'beta','IgnoreCase',true) || contains(tname,'RBE','IgnoreCase',true))
-%             topasCube.(tname) = topasTally;
-%         end
     end
     
 else % if topas dij calculation
     for t = 1:length(MCparam.tallies)
         tname = MCparam.tallies{t};
-        topasTally = zeros(cubeDim(1),cubeDim(2),cubeDim(3));
-        
+       
         for f = 1:MCparam.nbFields
             topasSum = cell(1,dij.totalNumOfBixels);
             topasSum(1,:) = {zeros(cubeDim(1),cubeDim(2),cubeDim(3))};
