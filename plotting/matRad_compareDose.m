@@ -69,7 +69,7 @@ if ~exist('n','var')
     n = 0;
 end
 if ~exist('criteria','var')
-    criteria = [3 3];
+    criteria = [1 1];
 end
 if ~exist('cst','var') || isempty(cst)
     cst = [];
@@ -114,7 +114,11 @@ end
 
 resolution = [ct.resolution.x ct.resolution.y ct.resolution.z];
 
-slicename = {round(isoCenter(2)./resolution(2)),round(isoCenter(1)./resolution(1)),round(isoCenter(3)./resolution(3))};
+if isfield(ct,'peakLocation')
+    slicename = {ct.peakLocation.x,ct.peakLocation.y,ct.peakLocation.z};
+else
+    slicename = {round(isoCenter(2)./resolution(2)),round(isoCenter(1)./resolution(1)),round(isoCenter(3)./resolution(3))};
+end
 doseWindow = [0 max([cube1(:); cube2(:)])];
 planename = {'coronal','sagittal','axial'};
 
@@ -155,7 +159,7 @@ if enable(1) == 1
         cstHandle = cst;
     end
     
-    for plane = 3%1:3
+    for plane = 1:3
         disp(['Plotting ',planename{plane},' plane...']);
         
         % Initialize Figure
