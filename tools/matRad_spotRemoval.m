@@ -47,6 +47,7 @@ end
 
 if ~exist('thres','var')
     thres = 0.03;
+%     thres = 0.00001;
 end
 
 
@@ -55,7 +56,7 @@ if exist('stf','var') && nargout > 1
 end
 
 newSpots = w>thres*mean(w);
-
+% newSpots = w>thres*max(w);
 
 
 
