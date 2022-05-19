@@ -39,18 +39,16 @@ for f = 1:length(folders)
         fnames = fieldnames(topasCubes);
         dij.MC_tallies = fnames;
 
-        if ~any(contains(fnames,'alpha','IgnoreCase',true))
-            for c = 1:numel(fnames)
-                dij.(fnames{c}){ctScen,1} = sum(w(:,ctScen))*reshape(topasCubes.(fnames{c}),[],1);
-            end
-        else
-            for d = 1:dij.numOfBeams
+        for d = 1:dij.numOfBeams
                 doseFields = tallies(contains(tallies,'dose','IgnoreCase',true));
                 for j = 1:numel(doseFields)
                     dij.(doseFields{j}){ctScen,1}(:,d)             = sum(w)*reshape(topasCubes.([doseFields{j} '_beam',num2str(d)]),[],1);
                     dij.([doseFields{j} '_std']){ctScen,1}(:,d)          = sum(w)*reshape(topasCubes.([doseFields{j} '_std_beam',num2str(d)]),[],1);
                 end
-
+        end
+        
+        if any(contains(fnames,'alpha','IgnoreCase',true))
+            for d = 1:dij.numOfBeams
                 abFields = tallies(contains(tallies,{'alpha','beta','LET'},'IgnoreCase',true));
                 for j = 1:numel(abFields)
                     dij.(abFields{j}){ctScen,1}(:,d)        = reshape(topasCubes.([abFields{j} '_beam',num2str(d)]),[],1);
@@ -74,10 +72,10 @@ for f = 1:length(folders)
 
         if length(folders) > 1
             outDose    = matRad_calcCubesMC(ones(dij.numOfBeams,1),dij,1);
-%             if any(contains(fieldnames(outDose),'alpha'))
-%                 names = fieldnames(outDose);
-%                 alphaFields = names((contains(names,{'alpha','beta','effect','RBE'}) + ~contains(names,{'RBExD'})) > 1);
-%             end
+            %             if any(contains(fieldnames(outDose),'alpha'))
+            %                 names = fieldnames(outDose);
+            %                 alphaFields = names((contains(names,{'alpha','beta','effect','RBE'}) + ~contains(names,{'RBExD'})) > 1);
+            %             end
             if ~exist('resultGUI')
                 for i = 1:dij.numOfBeams
                     beamInfo(i).suffix = ['_beam', num2str(i)];
@@ -88,17 +86,17 @@ for f = 1:length(folders)
                     if any(contains(fieldnames(outDose),'alpha'))
                         resultGUI.(['RBExD_' model beamInfo(i).suffix]) = zeros(dij.ctGrid.dimensions);
                     end
-% 
-%                     for k = 1:length(alphaFields)
-%                         resultGUI.(alphaFields{k}) = cell(1,length(folders));
-%                     end
+                    %
+                    %                     for k = 1:length(alphaFields)
+                    %                         resultGUI.(alphaFields{k}) = cell(1,length(folders));
+                    %                     end
                     resultGUI = orderfields(resultGUI);
                 end
             end
 
             for i = 1:length(beamInfo)
                 resultGUI.(['physicalDose', beamInfo(i).suffix]) = resultGUI.(['physicalDose', beamInfo(i).suffix]) + outDose.(['physicalDose', beamInfo(i).suffix])/length(folders);
-            end                
+            end
             if any(contains(fieldnames(outDose),'alpha'))
                 for i = 1:length(beamInfo)
                     resultGUI.(['RBExD_' model beamInfo(i).suffix]) = resultGUI.(['RBExD_' model beamInfo(i).suffix]) + outDose.(['RBExD_' model beamInfo(i).suffix])/length(folders);
