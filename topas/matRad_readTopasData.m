@@ -8,6 +8,13 @@ else
 end
 
 load([folder filesep 'MCparam.mat']);
+if iscell(MCparam.scoreReportQuantity)
+    MCparam.numOfReportQuantities = length(MCparam.scoreReportQuantity);
+else
+    MCparam.numOfReportQuantities = 1;
+    MCparam.scoreReportQuantity = {MCparam.scoreReportQuantity};
+end
+
 
 %Normalize with histories and particles/weight
 correctionFactor = 1e6 / double(MCparam.nbHistoriesTotal); %double(MCparam.nbParticlesTotal) / double(MCparam.nbHistoriesTotal);
@@ -41,7 +48,7 @@ if calcDoseDirect
                         genFullFile = fullfile(folder,[genFileName '.bin']);
                         dataRead = matRad_readBinData(genFullFile,cubeDim);
                         
-                        for i = 1:length(MCparam.scoreReportQuantity)
+                        for i = 1:MCparam.numOfReportQuantities
                             data.(MCparam.scoreReportQuantity{i}){k} = dataRead{i};
                         end
                         %                         end
@@ -51,12 +58,12 @@ if calcDoseDirect
 %                 topasSum = topasSum + data{k};
             end
             
-            for i = 1:length(MCparam.scoreReportQuantity)
+            for i = 1:MCparam.numOfReportQuantities
                 topasSum.(MCparam.scoreReportQuantity{i}) = sum(cat(4,data.(MCparam.scoreReportQuantity{i}){:}),4);
             end
 
             if contains(tname,'dose','IgnoreCase',true)
-                for i = 1:length(MCparam.scoreReportQuantity)
+                for i = 1:MCparam.numOfReportQuantities
                     topasSum.(MCparam.scoreReportQuantity{i}) = correctionFactor .* topasSum.(MCparam.scoreReportQuantity{i});
                 end
                
@@ -76,7 +83,7 @@ if calcDoseDirect
                 
                 SumVarOverFields = SumVarOverFields + topasVarSum;
             elseif contains(tname,'alpha','IgnoreCase',true) || contains(tname,'beta','IgnoreCase',true) || contains(tname,'RBE','IgnoreCase',true) || contains(tname,'LET','IgnoreCase',true)               
-                for i = 1:length(MCparam.scoreReportQuantity)
+                for i = 1:MCparam.numOfReportQuantities
                     topasSum.(MCparam.scoreReportQuantity{i}) = topasSum.(MCparam.scoreReportQuantity{i}) ./ MCparam.nbRuns;
                 end
             end
