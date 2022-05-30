@@ -13,8 +13,9 @@ else
     folders{1} = folder;
 end
 folders = folders(~cellfun('isempty',folders));
+numOfSamples = length(folders);
 
-for f = 1:length(folders)
+for f = 1:numOfSamples
     try
         currFolder = folders{f};
         topasConfig = MatRad_TopasConfig();
@@ -75,7 +76,7 @@ for f = 1:length(folders)
             end
         end
 
-        if length(folders) > 1
+        if numOfSamples > 1
             outDose    = matRad_calcCubesMC(ones(dij.numOfBeams,1),dij,1);
             %             if any(contains(fieldnames(outDose),'alpha'))
             %                 names = fieldnames(outDose);
@@ -95,27 +96,27 @@ for f = 1:length(folders)
                     end
                     %
                     %                     for k = 1:length(alphaFields)
-                    %                         resultGUI.(alphaFields{k}) = cell(1,length(folders));
+                    %                         resultGUI.(alphaFields{k}) = cell(1,numOfSamples);
                     %                     end
                     resultGUI = orderfields(resultGUI);
                 end
             end
             if any(contains(fieldnames(outDose),'_std'))
                 for i = 1:length(beamInfo)
-                    resultGUI.(['physicalDose_std', beamInfo(i).suffix]) = resultGUI.(['physicalDose_std' beamInfo(i).suffix]) + outDose.(['physicalDose_std' beamInfo(i).suffix])/length(folders);
+                    resultGUI.(['physicalDose_std', beamInfo(i).suffix]) = resultGUI.(['physicalDose_std' beamInfo(i).suffix]) + outDose.(['physicalDose_std' beamInfo(i).suffix])/numOfSamples;
                 end
             end
             if any(contains(fieldnames(outDose),'batchStd'))
                 for i = 1:length(beamInfo)
-                    resultGUI.(['physicalDose_batchStd', beamInfo(i).suffix]) = resultGUI.(['physicalDose_batchStd' beamInfo(i).suffix]) + outDose.(['physicalDose_batchStd' beamInfo(i).suffix])/length(folders);
+                    resultGUI.(['physicalDose_batchStd', beamInfo(i).suffix]) = resultGUI.(['physicalDose_batchStd' beamInfo(i).suffix]) + outDose.(['physicalDose_batchStd' beamInfo(i).suffix])/numOfSamples;
                 end
             end
             for i = 1:length(beamInfo)
-                resultGUI.(['physicalDose', beamInfo(i).suffix]) = resultGUI.(['physicalDose', beamInfo(i).suffix]) + outDose.(['physicalDose', beamInfo(i).suffix])/length(folders);
+                resultGUI.(['physicalDose', beamInfo(i).suffix]) = resultGUI.(['physicalDose', beamInfo(i).suffix]) + outDose.(['physicalDose', beamInfo(i).suffix])/numOfSamples;
             end
             if any(contains(fieldnames(outDose),'alpha'))
                 for i = 1:length(beamInfo)
-                    resultGUI.(['RBExD_' model beamInfo(i).suffix]) = resultGUI.(['RBExD_' model beamInfo(i).suffix]) + outDose.(['RBExD_' model beamInfo(i).suffix])/length(folders);
+                    resultGUI.(['RBExD_' model beamInfo(i).suffix]) = resultGUI.(['RBExD_' model beamInfo(i).suffix]) + outDose.(['RBExD_' model beamInfo(i).suffix])/numOfSamples;
                 end
             end
             resultGUI.samples = f;
