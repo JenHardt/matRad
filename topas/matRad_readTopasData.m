@@ -57,9 +57,14 @@ if calcDoseDirect
                 end
 %                 topasSum = topasSum + data{k};
             end
-            
+
+            % add STD quadratically
             for i = 1:MCparam.numOfReportQuantities
-                topasSum.(MCparam.scoreReportQuantity{i}) = sum(cat(4,data.(MCparam.scoreReportQuantity{i}){:}),4);
+                if contains(MCparam.scoreReportQuantity{2},'standard','IgnoreCase',true)
+                    topasSum.(MCparam.scoreReportQuantity{i}) = sum(cat(4,data.(MCparam.scoreReportQuantity{i}){:}).^2,4);
+                else
+                    topasSum.(MCparam.scoreReportQuantity{i}) = sum(cat(4,data.(MCparam.scoreReportQuantity{i}){:}),4);
+                end
             end
 
             if contains(tname,'dose','IgnoreCase',true)
