@@ -125,7 +125,7 @@ elseif strcmp(pln.propHeterogeneity.sampling.method, 'poisson')
 %     ct.cube{1}(lungIdx) = samples / max(samples);
 end
 
-if strcmp(pln.propHeterogeneity.sampling.mode,'TOPAS') && strcmp(pln.propHeterogeneity.sampling.method, 'binomial') && ~contains(pln.propMC.materialConverter.addSection,'none')
+if any(contains(pln.propHeterogeneity.sampling.mode,{'TOPAS','MCsquare'})) && strcmp(pln.propHeterogeneity.sampling.method, 'binomial')
     % only include different densities that are significantly different
     % (5th digit)
     lung = round(ct.cube{1}(lungIdx),3);
@@ -139,14 +139,14 @@ if strcmp(pln.propHeterogeneity.sampling.mode,'TOPAS') && strcmp(pln.propHeterog
             ct.cubeHU{1}(lungIdx(lung == 0)) = 2997;
         case 'sampledDensities'
             [~,sortIdx] = sort(lung);
-            lungDensitiesNewSorted = repelem(5000:4999+numel(numOfOccurences),1,numOfOccurences);
+            lungDensitiesNewSorted = repelem(6000:5999+numel(numOfOccurences),1,numOfOccurences);
             ct.cubeHU{1}(lungIdx(sortIdx)) = lungDensitiesNewSorted;
         otherwise
             matRad_cfg.dispWarning('Lung modulation should be used with a separate section in the Schneider converter.\n');
     end
     
 %     sampledDensities(1) = 0.001225;
-    sampledDensities(sampledDensities<0.001225) = 0.001225;
+%     sampledDensities(sampledDensities<0.001225) = 0.001225;
     if strcmp(pln.propMC.materialConverter.addSection,'sampledDensities')
         ct.sampledDensities = sampledDensities;
         ct.sampledLungIndices = lungIdx(sortIdx);

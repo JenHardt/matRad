@@ -23,6 +23,12 @@ switch pln.propHeterogeneity.sampling.mode
 
         histories = pln.propMC.histories;
         calcExternal = pln.propMC.externalCalculation;
+    case 'MCsquare'
+        calcExternal = false;
+        histories = pln.propMC.histories;
+        if ~isfield(pln.propMC,'materialConverter') || ~isfield(pln.propMC.materialConverter,'addSection')
+            pln.propMC.materialConverter.addSection = 'sampledDensities';
+        end
     case 'matRad'
         calcExternal = false;
     otherwise
@@ -66,7 +72,14 @@ matRad_cfg.logLevel = 1;
 
 switch pln.propHeterogeneity.sampling.mode
     case 'TOPAS'
+        pln.propMC.proton_engine = 'TOPAS';
         [ctR,cstR,stfR] = matRad_resampleTopasGrid(ct,cst,pln,stf);
+    case 'MCsquare'
+        pln.propMC.proton_engine = 'MCsquare';
+%         [ctR,cstR,stfR] = matRad_resampleTopasGrid(ct,cst,pln,stf);
+        ctR = ct;
+        cstR = cst;
+        stfR = stf;
     case 'matRad'
         ctR = ct;
         cstR = cst;
@@ -100,22 +113,23 @@ for i = 1:samples
     ct_mod.sampleIdx = i;
     %%
     switch pln.propHeterogeneity.sampling.mode
-        case 'TOPAS'
-            pln.propMC.proton_engine = 'TOPAS';
+        case {'TOPAS','MCsquare'}
             pln.propMC.numOfRuns = 1;
             pln.propHeterogeneity.sampling.histories = histories/samples;
             resultGUI_mod = matRad_calcDoseDirectMC(ct_mod,stfR,pln,cstR,weights);
 
             if ~calcExternal
                 %     resultGUI.(['physicalDose',num2str(s)]) = resultGUI.(['physicalDose',num2str(s)]) + resultGUI_mod.physicalDose/s;
-                if strcmp(pln.bioParam.quantityOpt,'RBExD')
+                if strcmp(pln.bioParam.quantityOpt,'RBExD') && ~strcmp(pln.propHeterogeneity.sampling.mode,'MCsquare')
 
                     for m = 1:length(models)
                         resultGUI.(['RBExD_', models{m}]) = resultGUI.(['RBExD_', models{m}]) + resultGUI_mod.(['RBExD_', models{m}]) / samples;
                     end
                 end
                 resultGUI.physicalDose = resultGUI.physicalDose + resultGUI_mod.physicalDose / samples;
-                std{i} = resultGUI_mod.physicalDose_std;
+                if isfield(resultGUI_mod,'physicalDose_std')
+                    std{i} = resultGUI_mod.physicalDose_std;
+                end
             end
         case 'matRad'
             resultGUI_mod = matRad_calcDoseDirect(ct_mod,stf,pln,cstR,weights);

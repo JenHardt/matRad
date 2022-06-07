@@ -118,7 +118,6 @@ end
 %% sending data to topas
 
 load([pln.radiationMode,'_',pln.machine],'machine');
-topasConfig = MatRad_TopasConfig();
 % Create Base Data
 topasConfig.radiationMode = stf.radiationMode;
 
@@ -132,6 +131,9 @@ else
 end
 if isfield(pln.propMC,'numOfRuns')
     topasConfig.numOfRuns = pln.propMC.numOfRuns;
+end
+if isfield(pln.propMC,'materialConverter') && isfield(pln.propMC.materialConverter,'HUToMaterial')
+    topasConfig.materialConverter.HUToMaterial = pln.propMC.materialConverter.HUToMaterial;
 end
 if pln.propMC.externalCalculation
     if isfield(pln,'patientID')
