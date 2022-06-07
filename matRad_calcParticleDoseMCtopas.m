@@ -94,7 +94,7 @@ env = matRad_getEnvironment();
 % for TOPAS we explicitly downsample the ct to the dose grid (might not
 % be necessary in future versions with separated grids)
 matRad_calcDoseInit;
-[ctR,~,~] = matRad_resampleTopasGrid(ct,cst,pln,stf);
+[ctR,~,~] = topasConfig.resampleGrid(ct,cst,pln,stf);
 % overwrite CT grid in dij in case of modulation.
 if isfield(ctR,'ctGrid')
     dij.ctGrid = ctR.ctGrid;
@@ -122,7 +122,6 @@ load([pln.radiationMode,'_',pln.machine],'machine');
 topasConfig.radiationMode = stf.radiationMode;
 
 machine.data = matRad_overrideBaseData(machine.data);
-topasBaseData = MatRad_TopasBaseData(machine,stf);%,TopasConfig);
 
 if isfield(pln.propHeterogeneity,'sampling') && isfield(pln.propHeterogeneity.sampling,'histories')
     topasConfig.numHistories = pln.propHeterogeneity.sampling.histories;
@@ -191,9 +190,9 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                 end
                
                 if calcDoseDirect
-                    topasConfig.writeAllFiles(ctR,pln,stf,topasBaseData,w(:,ctScen));
+                    topasConfig.writeAllFiles(ctR,pln,stf,machine,w(:,ctScen));
                 else
-                    topasConfig.writeAllFiles(ctR,pln,stf,topasBaseData);
+                    topasConfig.writeAllFiles(ctR,pln,stf,machine);
                 end
                 
                 % Run simulation for current scenario
@@ -251,9 +250,9 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                     
                     %% Simulation finished - read out volume scorers from topas simulation
                     if calcDoseDirect
-                        topasCubes = matRad_readTopasData(topasConfig.workingDir);
+                        topasCubes = topasConfig.read(topasConfig.workingDir);
                     else
-                        topasCubes = matRad_readTopasData(topasConfig.workingDir,dij);
+                        topasCubes = topasConfig.read(topasConfig.workingDir,dij);
                     end
                     
                     fnames = fieldnames(topasCubes);
