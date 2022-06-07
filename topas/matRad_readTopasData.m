@@ -1,6 +1,29 @@
-function [topasCube,std] = matRad_readTopasData(folder,dij)
-%UNTITLED2 Summary of this function goes here
-%   Detailed explanation goes here
+function topasCube = matRad_readTopasData(folder,dij)
+% function to read out 
+% for beams in x-, y- or z-direction
+%
+% call
+%   topasCube = matRad_readTopasData(folder,dij)
+%
+% input
+%   folder:         Path to folder where TOPAS files are in (as string)
+%   dij:            dij struct (this part needs update)
+%
+% output
+%   topasCube:      struct with all read out subfields
+%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Copyright 2022 the matRad development team.
+%
+% This file is part of the matRad project. It is subject to the license
+% terms in the LICENSE file found in the top-level directory of this
+% distribution and at https://github.com/e0404/matRad/LICENSES.txt. No part
+% of the matRad project, including this file, may be copied, modified,
+% propagated, or distributed except according to the terms contained in the
+% LICENSE file.
+%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if exist('dij')
     calcDoseDirect = false;
 else
@@ -33,8 +56,6 @@ end
 if calcDoseDirect
     for t = 1:length(MCparam.tallies)
         tname = MCparam.tallies{t};
-        topasTally = zeros(cubeDim(1),cubeDim(2),cubeDim(3));
-        SumVarOverFields = zeros(cubeDim(1),cubeDim(2),cubeDim(3));
         
         for f = 1:MCparam.nbFields
             topasMeanDiff = zeros(cubeDim(1),cubeDim(2),cubeDim(3));
@@ -42,53 +63,58 @@ if calcDoseDirect
                 genFileName = sprintf('score_%s_field%d_run%d_%s',MCparam.simLabel,f,k,tname);
                 switch MCparam.outputType
                     case 'csv'
+                        % output as csv needs to be cleaned up
                         genFullFile = fullfile(folder,[genFileName '.csv']);
                         data{k} = matRad_readCsvData(genFullFile,cubeDim);
                     case 'binary'
                         genFullFile = fullfile(folder,[genFileName '.bin']);
                         dataRead = matRad_readBinData(genFullFile,cubeDim);
                         
-                        for i = 1:MCparam.numOfReportQuantities
+                        % binheader file could be used here to determine the actually used reportQuantities
+                        for i = 1:numel(dataRead)
                             data.(MCparam.scoreReportQuantity{i}){k} = dataRead{i};
                         end
-                        %                         end
+                        % for example the standard deviation is not calculated for alpha/beta so a loop through all
+                        % reportQuantities does not work here
+                        currNumOfQuantities = numel(dataRead);
+%                        currReportQuantities = ;
                     otherwise
                         error('Not implemented!');
                 end
-%                 topasSum = topasSum + data{k};
             end
 
             % add STD quadratically
-            for i = 1:MCparam.numOfReportQuantities
-                if contains(MCparam.scoreReportQuantity{2},'standard','IgnoreCase',true)
-                    topasSum.(MCparam.scoreReportQuantity{i}) = sum(cat(4,data.(MCparam.scoreReportQuantity{i}){:}).^2,4);
+            for i = 1:currNumOfQuantities
+                if contains(MCparam.scoreReportQuantity{i},'standard_deviation','IgnoreCase',true)
+                    topasSum.(MCparam.scoreReportQuantity{i}) = sqrt(double(MCparam.nbHistoriesTotal)) * sqrt(sum(cat(4,data.(MCparam.scoreReportQuantity{i}){:}).^2,4));
                 else
                     topasSum.(MCparam.scoreReportQuantity{i}) = sum(cat(4,data.(MCparam.scoreReportQuantity{i}){:}),4);
                 end
             end
 
             if contains(tname,'dose','IgnoreCase',true)
-                for i = 1:MCparam.numOfReportQuantities
-                    topasSum.(MCparam.scoreReportQuantity{i}) = correctionFactor .* topasSum.(MCparam.scoreReportQuantity{i});
-                end
-               
                 % Calculate Standard Deviation from batches
                 for k = 1:MCparam.nbRuns
-                    topasMeanDiff = topasMeanDiff + (data.Sum{k} - topasSum.Sum ./ MCparam.nbRuns).^2;
+                    topasMeanDiff = topasMeanDiff + (data.Sum{k} - topasSum.Sum / MCparam.nbRuns).^2;
                 end
                 % variance of the mean
                 topasVarMean = topasMeanDiff./(MCparam.nbRuns - 1)./MCparam.nbRuns;
                 % std of the MEAN!
                 topasStdMean = sqrt(topasVarMean);
                 % std of the SUM
-                topasStdSum = topasStdMean * MCparam.nbRuns;
-                topasVarSum = topasStdSum.^2;
+                topasStdSum = topasStdMean * correctionFactor * MCparam.nbRuns;
+%                 topasVarSum = topasStdSum.^2;
                 
                 topasCube.([tname '_batchStd_beam' num2str(f)]) = topasStdSum;
                 
-                SumVarOverFields = SumVarOverFields + topasVarSum;
+%                 SumVarOverFields = SumVarOverFields + topasVarSum;                
+                
+                for i = 1:currNumOfQuantities
+                    topasSum.(MCparam.scoreReportQuantity{i}) = correctionFactor .* topasSum.(MCparam.scoreReportQuantity{i});
+                end
+
             elseif contains(tname,'alpha','IgnoreCase',true) || contains(tname,'beta','IgnoreCase',true) || contains(tname,'RBE','IgnoreCase',true) || contains(tname,'LET','IgnoreCase',true)               
-                for i = 1:MCparam.numOfReportQuantities
+                for i = 1:currNumOfQuantities
                     topasSum.(MCparam.scoreReportQuantity{i}) = topasSum.(MCparam.scoreReportQuantity{i}) ./ MCparam.nbRuns;
                 end
             end
