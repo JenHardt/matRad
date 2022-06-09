@@ -175,6 +175,10 @@ classdef MatRad_TopasConfig < handle
                     obj.scorer.(fnames{f}) = pln.propMC.scorer.(fnames{f});
                 end
             end
+            if isempty(obj.radiationMode)
+                obj.radiationMode = machine.meta.radiationMode;
+            end
+
             if obj.scorer.RBE
                 obj.scorer.doseToMedium = true;
                 if contains(obj.scorer.RBE_model,'default')
@@ -250,7 +254,7 @@ classdef MatRad_TopasConfig < handle
             %   ct:             Path to folder where TOPAS files are in (as string)
             %   cst:            dij struct (this part needs update)
             %   pln:            dij struct (this part needs update)
-            %   stf:            dij struct (this part needs update)            
+            %   stf:            dij struct (this part needs update)
             %
             % output
             %   topasCube:      struct with all read out subfields
@@ -530,7 +534,6 @@ classdef MatRad_TopasConfig < handle
                     tname = obj.MCparam.tallies{t};
 
                     for f = 1:obj.MCparam.nbFields
-                        topasMeanDiff = zeros(cubeDim(1),cubeDim(2),cubeDim(3));
                         for k = 1:obj.MCparam.nbRuns
                             genFileName = sprintf('score_%s_field%d_run%d_%s',obj.MCparam.simLabel,f,k,tname);
                             switch obj.MCparam.outputType
@@ -566,6 +569,7 @@ classdef MatRad_TopasConfig < handle
 
                         if contains(tname,'dose','IgnoreCase',true)
                             % Calculate Standard Deviation from batches
+                            topasMeanDiff = zeros(cubeDim(1),cubeDim(2),cubeDim(3));
                             for k = 1:obj.MCparam.nbRuns
                                 topasMeanDiff = topasMeanDiff + (data.Sum{k} - topasSum.Sum / obj.MCparam.nbRuns).^2;
                             end
@@ -1274,7 +1278,6 @@ classdef MatRad_TopasConfig < handle
                     fclose(fileID);
                 end
             end
-
 
             %Bookkeeping
             obj.MCparam.nbParticlesTotal = sum(nBeamParticlesTotal);
