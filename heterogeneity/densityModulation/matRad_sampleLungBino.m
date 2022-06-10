@@ -25,9 +25,6 @@ function samples = matRad_sampleLungBino(n,p,lungDensity,numOfLungVoxels,continu
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% global matRad_cfg;
-% matRad_cfg =  MatRad_Config.instance();
-
 if any(~mod(n,1) == 0) && ~continuous
     error('n has to be integer for discrete distribution');
 elseif ~(all(p <= 1) && all(p >= 0))
@@ -45,10 +42,15 @@ if isscalar(unique(n)) && isscalar(unique(p))
 end
 
 if continuous
-    % sample continuous beta distribution   
+    % calculate beta distribution parameters alpha & beta using method of moments with sample mean x=p and 
+    % https://en.wikipedia.org/wiki/Beta_distribution#Method_of_moments
     a = p.*(n-1);
     b = (1-p).*(n-1);
 
+%     a = p.*n;
+%     b = (1-p).*n;
+
+    % sample from continuous beta distribution using "numOfLungVoxels" random numbers
     samples = betaincinv(rand([numOfLungVoxels,1]),a,b);
 else
     % sample discrete binomial distribution

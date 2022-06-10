@@ -23,8 +23,14 @@ switch pln.propHeterogeneity.sampling.mode
 
         histories = pln.propMC.histories;
         calcExternal = pln.propMC.externalCalculation;
+    case 'MCsquare'
+        calcExternal = false;
+        histories = pln.propMC.histories;
+        if ~isfield(pln.propMC,'materialConverter') || ~isfield(pln.propMC.materialConverter,'addSection')
+            pln.propMC.materialConverter.addSection = 'sampledDensities';
+        end
     case 'matRad'
-
+        calcExternal = false;
     otherwise
         matRad_cfg.dispError('No sampling mode other than TOPAS and matRad implemented');
 end
@@ -66,14 +72,34 @@ matRad_cfg.logLevel = 1;
 
 switch pln.propHeterogeneity.sampling.mode
     case 'TOPAS'
-        [ctR,cstR] = matRad_resampleTopasGrid(ct,cst,pln,stf);
+        topasConfig = MatRad_TopasConfig();
+        pln.propMC.proton_engine = 'TOPAS';
+        [ctR,cstR,stfR] = topasConfig.resampleGrid(ct,cst,pln,stf);
+    case 'MCsquare'
+        pln.propMC.proton_engine = 'MCsquare';
+        ctR = ct;
+        cstR = cst;
+        stfR = stf;
     case 'matRad'
         ctR = ct;
         cstR = cst;
 end
-resultGUI.physicalDose = zeros(ct.cubeDim);
-if strcmp(pln.bioParam.quantityOpt,'RBExD')
-    resultGUI.RBExD = zeros(ct.cubeDim);
+
+if ~exist('resultGUI','var')
+    resultGUI.physicalDose = zeros(ct.cubeDim);
+    if strcmp(pln.bioParam.quantityOpt,'RBExD')
+        %         fields = fieldnames(resultGUI_mod);
+        %         fields = fields(contains(fields,'RBExD'));
+        %         for f = 1:length(fields)
+        %             model = strsplit(fields{f},'_');
+        %             models{f} = char(model{2});
+        %         end
+        %         models = unique(models);
+        models = {'MCN'};
+        for m = 1:length(models)
+            resultGUI.(['RBExD_', models{m}]) = zeros(ct.cubeDim);
+        end
+    end
 end
 
 % set this flag so that the modulated cube is not overwritten in matRad_calcDoseInit
@@ -87,48 +113,56 @@ for i = 1:samples
     ct_mod.sampleIdx = i;
     %%
     switch pln.propHeterogeneity.sampling.mode
-        case 'TOPAS'
-            pln.propMC.proton_engine = 'TOPAS';
+        case {'TOPAS','MCsquare'}
             pln.propMC.numOfRuns = 1;
             pln.propHeterogeneity.sampling.histories = histories/samples;
-            resultGUI_mod = matRad_calcDoseDirectMC(ct_mod,stf,pln,cstR,weights);
+            resultGUI_mod = matRad_calcDoseDirectMC(ct_mod,stfR,pln,cstR,weights);
 
             if ~calcExternal
                 %     resultGUI.(['physicalDose',num2str(s)]) = resultGUI.(['physicalDose',num2str(s)]) + resultGUI_mod.physicalDose/s;
-                if strcmp(pln.bioParam.quantityOpt,'RBExD')
-                    resultGUI.RBExD = resultGUI.RBExD + resultGUI_mod.RBExD/samples;
+                if strcmp(pln.bioParam.quantityOpt,'RBExD') && ~strcmp(pln.propHeterogeneity.sampling.mode,'MCsquare')
+
+                    for m = 1:length(models)
+                        resultGUI.(['RBExD_', models{m}]) = resultGUI.(['RBExD_', models{m}]) + resultGUI_mod.(['RBExD_', models{m}]) / samples;
+                    end
                 end
-                resultGUI.physicalDose = resultGUI.physicalDose + resultGUI_mod.physicalDose/samples;
-                std{i} = resultGUI_mod.physicalDose_std;
+                resultGUI.physicalDose = resultGUI.physicalDose + resultGUI_mod.physicalDose / samples;
+                if isfield(resultGUI_mod,'physicalDose_std')
+                    std{i} = resultGUI_mod.physicalDose_std;
+                end
             end
         case 'matRad'
             resultGUI_mod = matRad_calcDoseDirect(ct_mod,stf,pln,cstR,weights);
 
             if strcmp(pln.bioParam.quantityOpt,'RBExD')
-                resultGUI.RBExD = resultGUI.RBExD + resultGUI_mod.RBExD/samples;
+                resultGUI.RBExD_MCN = resultGUI.RBExD_MCN + resultGUI_mod.RBExD / samples;
             end
-            resultGUI.physicalDose = resultGUI.physicalDose + resultGUI_mod.physicalDose/samples;
+            resultGUI.physicalDose = resultGUI.physicalDose + resultGUI_mod.physicalDose / samples;
     end
 
-    data{i} = resultGUI_mod.physicalDose;
+    if ~calcExternal
+        data{i} = resultGUI_mod.physicalDose;
+    end
 
 end
 
-% Calculate Standard deviation between samples
-meanDiff = 0;
-for k = 1:samples
-    meanDiff = meanDiff + (data{k} - resultGUI.physicalDose).^2;
-end
-varMean = meanDiff./(samples - 1)./samples;
-stdMean = sqrt(varMean);
+if ~calcExternal
+    % Calculate Standard deviation between samples
+    meanDiff = 0;
+    for k = 1:samples
+        meanDiff = meanDiff + (data{k} - resultGUI.physicalDose).^2;
+    end
+    varMean = meanDiff./(samples - 1)./samples;
+    stdMean = sqrt(varMean);
 
-stdSum = stdMean * samples;
-varSum = stdSum.^2;
+    stdSum = stdMean * samples;
+    varSum = stdSum.^2;
 
-resultGUI.physicalDose_std = sqrt(varSum);
+    resultGUI.physicalDose_std = sqrt(varSum);
 
-if strcmp(pln.propHeterogeneity.sampling.mode,'TOPAS') && ~calcExternal
-    resultGUI.physicalDose_std_individual = std;
+    if strcmp(pln.propHeterogeneity.sampling.mode,'TOPAS') && ~calcExternal
+        resultGUI.physicalDose_std_individual = std;
+    end
 end
 
 %Change loglevel back to default;

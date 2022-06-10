@@ -205,9 +205,10 @@ classdef MatRad_Config < handle
 
 
             % default properties for fine sampling calculation
-            obj.propDoseCalc.fineSamplingProperties.defaultSigmaSub = 1;
-            obj.propDoseCalc.fineSamplingProperties.defaultN = 21;
-            obj.propDoseCalc.fineSamplingProperties.defaultMethod = 'russo';
+            obj.propDoseCalc.fineSampling.defaultSigmaSub = 1;
+            obj.propDoseCalc.fineSampling.defaultN = 21;
+            obj.propDoseCalc.fineSampling.defaultMethod = 'russo';
+            obj.propDoseCalc.fineSampling.defaultCalcMode = 'standard';
 
             obj.disableGUI = false;
 

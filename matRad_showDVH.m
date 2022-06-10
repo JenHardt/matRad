@@ -43,6 +43,7 @@ end
 % specified
 hold on;
 
+lineWidth = 2;
 %reduce cst
 visibleIx = cellfun(@(c) c.Visible == 1,cst(:,5));
 cstNames = cst(visibleIx,2);
@@ -73,7 +74,7 @@ for i = 1:numOfVois
     ix      = max([1 find(dvh(i).volumePoints>0,1,'last')]);
     currDvh = [dvh(i).doseGrid(1:ix);dvh(i).volumePoints(1:ix)];
     
-    plot(currDvh(1,:),currDvh(2,:),'LineWidth',4,'Color',colorMx(i,:), ...
+    plot(currDvh(1,:),currDvh(2,:),'LineWidth',lineWidth,'Color',colorMx(i,:), ...
         'LineStyle',lineStyles{lineStyleIndicator},'DisplayName',cstNames{i})
     
     maxDVHvol  = max(maxDVHvol,max(currDvh(2,:)));

@@ -1,7 +1,16 @@
-function data = matRad_readBinData(binFile,cubeDim)
-    fID = fopen(binFile);
-    data = fread(fID,prod(cubeDim),'double');
-    fclose(fID);
-    data = reshape(data,cubeDim(2),cubeDim(1),cubeDim(3));
-    data = permute(data,[2 1 3]);
+function dataOut = matRad_readBinData(binFile,cubeDim)
+fID = fopen(binFile);
+data = fread(fID,inf,'double');
+fclose(fID);
+
+if rem(numel(data),prod(cubeDim))==0
+    numOfFields = numel(data)/prod(cubeDim);
+    for i = 1:numOfFields
+        dataOut{i} = reshape(data(i:numOfFields:end),cubeDim(2),cubeDim(1),cubeDim(3));
+        dataOut{i} = permute(dataOut{i},[2 1 3]);
+    end
+else
+    error('bin data contains an odd number of entries.')
+end
+
 end

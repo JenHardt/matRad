@@ -52,14 +52,6 @@ if ~strcmp(pln.radiationMode,'protons')
     matRad_cfg.dispError('Wrong radiation modality . MCsquare only supports protons!');    
 end
 
-% switch between either using max stat uncertainity or total number of
-% cases
-if (pln.propMC.histories < 1)
-    maxStatUncertainty = true;
-else
-    maxStatUncertainty = false;
-end
-
 if isfield(pln,'propMC') && isfield(pln.propMC,'config')        
     if isa(pln.propMC.config,'MatRad_MCsquareConfig')
         matRad_cfg.dispInfo('Using given MCSquare Configuration in pln.propMC.config!\n');
@@ -242,9 +234,7 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                 
                 % MCsquare settings
                 MCsquareConfigFile = sprintf('MCsquareConfig.txt');
-                
-                MCsquareConfig = MatRad_MCsquareConfig;
-                
+                              
                 MCsquareConfig.BDL_Machine_Parameter_File = ['BDL/' bdFile];
                 MCsquareConfig.BDL_Plan_File = 'currBixels.txt';
                 MCsquareConfig.CT_File       = 'MC2patientCT.mhd';
@@ -267,17 +257,7 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                     MCsquareConfig.LET_MHD_Output		 = calcDoseDirect;
                     MCsquareConfig.LET_Sparse_Output	 = ~calcDoseDirect;
                 end
-                
-                
-                % write patient data
-                MCsquareBinCubeResolution = [dij.doseGrid.resolution.x ...
-                    dij.doseGrid.resolution.y ...
-                    dij.doseGrid.resolution.z];
-                
-                matRad_writeMhd(HUcube{ctScen},MCsquareBinCubeResolution,MCsquareConfig.CT_File);
-                
-                
-                
+                 
                 counter = 0;
                 for i = 1:length(stf)
                     %Let's check if we have a unique or no range shifter, because MCsquare
@@ -389,10 +369,45 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                 if any(isnan(MCsquareOrder))
                     matRad_cfg.dispError('Invalid ordering of Beamlets for MCsquare computation!');
                 end
+
+                %% Write config files
+                % override HU_Density_Conversion_File and HU_Material_Conversion_File in case of Heterogeneity density sampling
+                if isfield(ct,'modulated') && ct.modulated
+                    % copy and override with default HU conversion files
+                    copyfile(MCsquareConfig.HU_Density_Conversion_File,'Scanners/densitySampling/HU_Density_Conversion.txt')
+                    copyfile(MCsquareConfig.HU_Material_Conversion_File,'Scanners/densitySampling/HU_Material_Conversion.txt')
+
+                    % prepare sampled densities and combine with HU
+                    sampledDensities(1,:) = 6000:5999+length(ct.sampledDensities);
+                    sampledDensities(2,:) = ct.sampledDensities;
+
+                    % write sampled densities
+                    fID = fopen('Scanners/densitySampling/HU_Density_Conversion.txt','a');
+                    fprintf(fID,'\n%i       %.3f',sampledDensities);
+                    fclose(fID);
+                    
+                    % write material conversion
+                    fID = fopen('Scanners/densitySampling/HU_Material_Conversion.txt','a');
+                    fprintf(fID,'\n6000    40      # Schneider_Lung');
+%                     fprintf(fID,'\n6000    17      # Water');
+                    fclose(fID);
+
+                    % set custom HU conversion files to be used by MCsquare
+                    MCsquareConfig.HU_Density_Conversion_File = 'Scanners/densitySampling/HU_Density_Conversion.txt';
+                    MCsquareConfig.HU_Material_Conversion_File = 'Scanners/densitySampling/HU_Material_Conversion.txt';
+                end
+
+                % write patient data
+                MCsquareBinCubeResolution = [dij.doseGrid.resolution.x ...
+                    dij.doseGrid.resolution.y ...
+                    dij.doseGrid.resolution.z];
                 
-                %% MC computation and dij filling
+                matRad_writeMhd(HUcube{ctScen},MCsquareBinCubeResolution,MCsquareConfig.CT_File);
+
+                % write config file
                 matRad_writeMCsquareinputAllFiles(MCsquareConfigFile,MCsquareConfig,stfMCsquare);
                 
+                %% MC computation and dij filling
                 % run MCsquare
                 mcSquareCall = [mcSquareBinary ' ' MCsquareConfigFile];
                 matRad_cfg.dispInfo(['Calling Monte Carlo Engine: ' mcSquareCall]);

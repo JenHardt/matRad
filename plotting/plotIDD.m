@@ -4,17 +4,18 @@ function plotIDD(varargin)
 figure
 hold on
 
-if nargin~=1 && ~isstruct(varargin{end-1})
-    profile = varargin{end-1};
-    until = nargin-2;
-else
-    profile = 1;
-    until = nargin-1;
+profile = 0;
+
+counter = 0;
+for j = 1:length(varargin)
+    if isstruct(varargin{j})
+        counter = counter + 1;
+    end
 end
 
 if isstr(varargin{end}) && (strcmp(varargin{end},'RBE') || strcmp(varargin{end},'RBExD'))
-    for i = 1:until
-        plot(matRad_calcIDD(varargin{i}.RBExD,profile),'LineWidth',1.5, 'DisplayName', inputname(i))
+    for i = 1:counter
+        plot(matRad_calcIDD(varargin{i}.RBExD_MCN,profile),'LineWidth',1.5, 'DisplayName', inputname(i),'LineStyle',varargin{counter+1}{i},'Color',varargin{counter+2}{i})
     end
 if profile
     ylabel('profile / RBExD')
@@ -22,8 +23,8 @@ if profile
     ylabel('IDD / RBExD')
     end
 else
-    for i = 1:until+1
-        plot(matRad_calcIDD(varargin{i}.physicalDose,profile),'LineWidth',1.5, 'DisplayName', inputname(i))
+    for i = 1:counter
+        plot(matRad_calcIDD(varargin{i}.physicalDose,profile),'LineWidth',1.5, 'DisplayName', inputname(i),'LineStyle',varargin{counter+1}{i},'Color',[varargin{counter+2}{i}])
     end
     if profile
     ylabel('profile / physicalDose')

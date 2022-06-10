@@ -53,7 +53,7 @@ matRad_calcDoseInit;
 
 % initialize lung heterogeneity correction and turn off if necessary files are missing
 if pln.propHeterogeneity.calcHetero
-    matRad_cfg.dispInfo('Heterogeneity correction enabled. \n');
+    matRad_cfg.dispInfo('Heterogeneity correction enablfed. \n');
     heteroCST = false;
     for i = 1:length(cst(:,1)) % scan cst for segmentation flagged for correction
         if isfield(cst{i,5},'HeterogeneityCorrection')

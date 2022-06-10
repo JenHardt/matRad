@@ -1,14 +1,14 @@
-function [cstHetero] = matRad_cstHeteroAutoassign(cst)
+function [cst] = matRad_cstHeteroAutoassign(cst)
 % Prepares the cst file for the heterogeneity correction algorithm
 %
 % call
 %   cstHetero = matRad_cstHeteroAutoassign(cst)
 %
 % input
-%   cst:            matRad cst struct
+%   cst:      matRad cst struct
 %
 % output
-%   cstHetero:      updated matRad cst struct with 'Lung' property
+%   cst:      updated matRad cst struct with 'Lung' property
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -23,14 +23,14 @@ function [cstHetero] = matRad_cstHeteroAutoassign(cst)
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-cstHetero = cst;
-% automatically assign the 'Lung' property to these segmentations
+% Note: tumor tissue does not contribute to the degradation, but some seams around the GTV might.
 % lungTissue={'Lung','GTV','PTV','CTV','ITV'};  
 lungTissue={'Lung'};  
 
+% assign the 'Lung' property to the segmentations containing the string "lung".
 for i = 1:length(cst(:,1))
     if contains(cst{i,2},lungTissue)
-        cstHetero{i,5}.HeterogeneityCorrection = 'Lung';
+        cst{i,5}.HeterogeneityCorrection = 'Lung';
     end
 end
 

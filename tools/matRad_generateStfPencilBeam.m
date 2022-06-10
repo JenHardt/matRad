@@ -47,7 +47,7 @@ currentMinimumFWHM = matRad_interp1(machine.meta.LUT_bxWidthminFWHM(1,:)', machi
 for i = 1:length(pln.propStf.gantryAngles)
     % get roation matrix for gantry and couch angles unequal to 0
     rotMat_vectors_T = transpose(matRad_getRotationMatrix(pln.propStf.gantryAngles(i),pln.propStf.couchAngles(i)));
-    
+
     % generate stf parameters
     stf(i).gantryAngle = pln.propStf.gantryAngles(i);
     stf(i).couchAngle = pln.propStf.couchAngles(i);
@@ -55,19 +55,10 @@ for i = 1:length(pln.propStf.gantryAngles)
     stf(i).radiationMode = pln.radiationMode;
     stf(i).SAD = SAD;
     stf(i).isoCenter = pln.propStf.isoCenter(i,:);
-    
+
     stf(i).sourcePoint_bev = [0,-SAD,0];
     stf(i).sourcePoint = stf(i).sourcePoint_bev*rotMat_vectors_T;
-    
-    % automatic energy selection if no energy selected
-    if nargin < 3
-        [~,l{1},rho{1},~,~] = matRad_siddonRayTracer(pln.propStf.isoCenter(i,:) + pln.multScen.isoShift(1,:), ...
-            ct.resolution, stf(i).sourcePoint, stf(i).ray.targetPoint, [ct.cube]);
-        radDepths = cumsum(l{1} .* rho{1}{1});
-        currRadDepths = radDepths(80);
-        [~,energyIx] = min(abs([machine.data.peakPos]-currRadDepths));
-    end
-    
+
     % generate ray
     if plane
         counter = 0;
@@ -76,7 +67,7 @@ for i = 1:length(pln.propStf.gantryAngles)
                 counter = counter + 1;
                 stf(i).ray(counter).rayPos_bev = [j*stf(i).bixelWidth,0,k*stf(i).bixelWidth];
                 stf(i).ray(counter).rayPos = stf(i).ray(counter).rayPos_bev*rotMat_vectors_T;
-                
+
                 stf(i).ray(counter).targetPoint_bev = 2*stf(i).ray(counter).rayPos_bev-stf(i).sourcePoint_bev;
                 stf(i).ray(counter).targetPoint = 2*stf(i).ray(counter).rayPos-stf(i).sourcePoint;
             end
@@ -85,20 +76,34 @@ for i = 1:length(pln.propStf.gantryAngles)
         stf(i).ray.rayPos_bev = [0,0,0];
         stf(i).ray.targetPoint_bev = [0,SAD,0];
         stf(i).ray.rayPos = stf(i).ray.rayPos_bev*rotMat_vectors_T;
-        stf(i).ray.targetPoint = stf(i).ray.targetPoint_bev*rotMat_vectors_T;   
+        stf(i).ray.targetPoint = stf(i).ray.targetPoint_bev*rotMat_vectors_T;
     end
-    
+
+    % automatic energy selection if no energy selected
+    if nargin < 3
+        if ~isfield(ct,'cube') && isfield(ct,'cubeHU')
+            ct = matRad_calcWaterEqD(ct,pln);
+        else
+            matRad_cfg.dispError('No cube in CT');
+        end
+        [~,l{1},rho{1},~,~] = matRad_siddonRayTracer(pln.propStf.isoCenter(i,:) + pln.multScen.isoShift(1,:), ...
+            ct.resolution, stf(i).sourcePoint, stf(i).ray.targetPoint, [ct.cube]);
+        radDepths = cumsum(l{1} .* rho{1}{1});
+        currRadDepths = radDepths(80);
+        [~,energyIx] = min(abs([machine.data.peakPos]-currRadDepths));
+    end
+
     if max(machine.data(energyIx).initFocus.SisFWHMAtIso) < currentMinimumFWHM
         currentMinimumFWHM = max(machine.data(energyIx).initFocus.SisFWHMAtIso) - 1;
     end
     [stf(i).ray.energy] = deal(machine.data(energyIx).energy);
     [stf(i).ray.focusIx] = deal(find(machine.data(energyIx).initFocus.SisFWHMAtIso > currentMinimumFWHM,1,'first'));
-    
+
     rShifter.ID = 0;
     rShifter.eqThickness = 0;
     rShifter.sourceRashiDistance = 0;
     [stf(i).ray.rangeShifter] = deal(rShifter);
-   
+
     stf(i).numOfRays = length(stf(i).ray);
     stf(i).numOfBixelsPerRay = ones(1,stf(i).numOfRays);
     stf(i).totalNumOfBixels = stf(i).numOfRays;
