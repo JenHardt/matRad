@@ -126,21 +126,6 @@ if isfield(ctR,'ctGrid')
     dij.ctGrid = ctR.ctGrid;
 end
 
-% fill bixels, rays and beams in case of dij calculation or external calculation
-if ~calcDoseDirect || pln.propMC.externalCalculation
-    counter = 1;
-    for f = 1:dij.numOfBeams
-        for r = 1:stf(f).numOfRays
-            for b = 1:stf(f).numOfBixelsPerRay(r)
-                dij.bixelNum(counter) = b;
-                dij.rayNum(counter)   = r;
-                dij.beamNum(counter)  = f;
-                counter = counter + 1;
-            end
-        end
-    end
-end
-
 %% sending data to topas
 
 % Load and create TOPAS Base Data
@@ -160,6 +145,7 @@ if calcDoseDirect
     end
 end
 
+% Get photon parameters for RBExD calculation
 if isfield(pln,'bioParam') && strcmp(pln.bioParam.quantityOpt,'RBExD')
     topasConfig.scorer.RBE = true;
     [dij.ax,dij.bx] = matRad_getPhotonLQMParameters(cst,dij.doseGrid.numOfVoxels,1,VdoseGrid);
@@ -181,10 +167,6 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
         for rangeShiftScen = 1:pln.multScen.totNumRangeScen
             if pln.multScen.scenMask(ctScen,shiftScen,rangeShiftScen)
 
-                %Overwrite CT (TEMPORARY - we should use 4D calculation in
-                %TOPAS here)
-                %                 ctR.cubeHU = cubeHUresampled(ctScen);
-                %                 ctR.cube = cubeResampled(ctScen);
                 % Delete previous topas files so there is no mix-up
                 files = dir([topasConfig.workingDir,'*']);
                 files = {files(~[files.isdir]).name};
@@ -205,8 +187,6 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
 
                 % save dij and weights, they are needed for later reading the data back in
                 if pln.propMC.externalCalculation
-                    save('dij.mat','dij')
-                    save('weights.mat','w')
                     matRad_cfg.dispInfo('TOPAS simulation skipped for external calculation\n');
                 else
                     for beamIx = 1:numel(stf)

@@ -159,12 +159,31 @@ classdef MatRad_TopasConfig < handle
         end
 
         function writeAllFiles(obj,ct,pln,stf,machine,w)
-            obj.matRad_cfg = MatRad_Config.instance(); %Instance of matRad configuration class
-
-            % Reset MCparam structure
-            obj.MCparam = struct();
-            obj.MCparam.tallies = {};
-
+            % constructor to write all TOPAS fils for local or external simulation
+            %
+            % call
+            %   topasConfig.writeAllFiles(ct,pln,stf,machine,w)
+            %
+            % input
+            %   ct:             Path to folder where TOPAS files are in (as string)
+            %   pln:            matRad plan struct
+            %   stf:            matRad steering struct
+            %   machine:        machine to be used for calculation
+            %   w:              (optional) weights in case of calcDoseDirect
+            %
+            % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            %
+            % Copyright 2022 the matRad development team.
+            %
+            % This file is part of the matRad project. It is subject to the license
+            % terms in the LICENSE file found in the top-level directory of this
+            % distribution and at https://github.com/e0404/matRad/LICENSES.txt. No part
+            % of the matRad project, including this file, may be copied, modified,
+            % propagated, or distributed except according to the terms contained in the
+            % LICENSE file.
+            %
+            % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            
             % prepare biological parameters
             if isfield(pln,'prescribedDose')
                 obj.bioParam.PrescribedDose = pln.prescribedDose;
@@ -179,6 +198,7 @@ classdef MatRad_TopasConfig < handle
                 obj.radiationMode = machine.meta.radiationMode;
             end
 
+            % Set correct RBE scorer parameters
             if obj.scorer.RBE
                 obj.scorer.doseToMedium = true;
                 if contains(obj.scorer.RBE_model,'default')
@@ -208,6 +228,7 @@ classdef MatRad_TopasConfig < handle
                 obj.scorer.doseToMedium = true;
             end
 
+            % Set material converter properties
             if isfield(pln,'propMC') && isfield(pln.propMC,'materialConverter')
                 fnames = fieldnames(pln.propMC.materialConverter);
                 for f = 1:length(fnames)
@@ -215,49 +236,73 @@ classdef MatRad_TopasConfig < handle
                 end
             end
 
-            obj.MCparam.nbRuns = obj.numOfRuns;
-            obj.MCparam.simLabel = obj.label;
-            obj.MCparam.scoreReportQuantity = obj.scorer.reportQuantity;
-
-
+            % create TOPAS working directory if not set
             if ~exist(obj.workingDir,'dir')
                 mkdir(obj.workingDir);
                 obj.matRad_cfg.dispInfo('Created TOPAS working directory %s\n',obj.workingDir);
             end
 
-            obj.MCparam.workingDir = obj.workingDir;
-
+            % Write CT, patient parameters and Schneider converter
             obj.matRad_cfg.dispInfo('Writing parameter files to %s\n',obj.workingDir);
             obj.writePatient(ct,pln);
 
+            % Generate uniform weights in case of calcDoseDirect (for later optimization)
             if ~exist('w','var')
                 numBixels = sum([stf(:).totalNumOfBixels]);
                 w = ones(numBixels,1);
             end
-
-            % Generate baseData using the MCemittanceBaseData constructor and write fields from stf
+            
+            % Set MCparam structure with important simulation parameters
+            obj.MCparam = struct();
+            obj.MCparam.tallies = {};
+            obj.MCparam.nbRuns = obj.numOfRuns;
+            obj.MCparam.simLabel = obj.label;
+            obj.MCparam.scoreReportQuantity = obj.scorer.reportQuantity;
+            obj.MCparam.workingDir = obj.workingDir;
+            obj.MCparam.weights = w;
+            
+            % Generate baseData using the MCemittanceBaseData constructor
+            % Write TOPAS beam properties
             topasBaseData = MatRad_MCemittanceBaseData(machine,stf);
             obj.writeStfFields(ct,stf,topasBaseData,w);
-
-            obj.matRad_cfg.dispInfo('Successfully written TOPAS setup files!\n')
+            
+            % fill in bixels, rays and beams in case of dij calculation or external calculation
+            counter = 1;
+            for f = 1:length(stf)
+                for r = 1:stf(f).numOfRays
+                    for b = 1:stf(f).numOfBixelsPerRay(r)
+                        obj.MCparam.bixelNum(counter) = b;
+                        obj.MCparam.rayNum(counter)   = r;
+                        obj.MCparam.beamNum(counter)  = f;
+                        counter = counter + 1;
+                    end
+                end
+            end
+            
+            % Save simulation parameters to folder
             obj.writeMCparam();
+            
+            % Console message
+            obj.matRad_cfg.dispInfo('Successfully written TOPAS setup files!\n')
         end
 
         function [ctR,cst,stf] = resampleGrid(obj,ct,cst,pln,stf)
-            % function to read out for beams in x-, y- or z-direction
+            % function to resample the TOPAS grid for faster computation
             %
             % call
-            %   [ctR,cst,stf] = topasConfig.resampleGrid(folder,ct,cst,pln,stf)
-            %   [ctR,cst,stf] = obj.resampleGrid(folder,ct,cst,pln,stf)
+            %   [ctR,cst,stf] = topasConfig.resampleGrid(ct,cst,pln,stf)
+            %   [ctR,cst,stf] = obj.resampleGrid(ct,cst,pln,stf)
             %
             % input
             %   ct:             Path to folder where TOPAS files are in (as string)
-            %   cst:            dij struct (this part needs update)
-            %   pln:            dij struct (this part needs update)
-            %   stf:            dij struct (this part needs update)
+            %   cst:            matRad segmentation struct
+            %   pln:            matRad plan struct
+            %   stf:            matRad steering struct
             %
             % output
-            %   topasCube:      struct with all read out subfields
+            %   ctR:            resampled CT
+            %   cst:            updated ct struct (due to calcDoseInit)
+            %   stf:            updated stf struct (due to calcDoseInit)
             %
             % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             %
@@ -271,37 +316,46 @@ classdef MatRad_TopasConfig < handle
             % LICENSE file.
             %
             % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            
+            % Set flag in case a modulated CT is detected
             if isfield(ct,'modulated') && ct.modulated
                 pln.propDoseCalc.useGivenEqDensityCube = true;
             end
+            
+            % Load calcDoseInit as usual 
             matRad_calcDoseInit;
 
+            % Check if CT has already been resampled
             if ~isfield(ct,'resampled')
-
+                % Allpcate resampled cubes
                 cubeHUresampled = cell(1,ct.numOfCtScen);
                 cubeResampled = cell(1,ct.numOfCtScen);
+                
+                % Perform resampling to dose grid
                 for s = 1:ct.numOfCtScen
                     cubeHUresampled{s} =  matRad_interp3(dij.ctGrid.x,  dij.ctGrid.y',  dij.ctGrid.z,ct.cubeHU{s}, ...
                         dij.doseGrid.x,dij.doseGrid.y',dij.doseGrid.z,'linear');
                     cubeResampled{s} =  matRad_interp3(dij.ctGrid.x,  dij.ctGrid.y',  dij.ctGrid.z,ct.cube{s}, ...
                         dij.doseGrid.x,dij.doseGrid.y',dij.doseGrid.z,'linear');
                 end
-
-                %Allocate temporary resampled CT
+                
+                % Allocate temporary resampled CT
                 ctR = ct;
                 ctR.cube = cell(1);
                 ctR.cubeHU = cell(1);
-                ctR.numOfCtScen = 1;
+                
+                % Set CT resolution to doseGrid resolution
                 ctR.resolution = dij.doseGrid.resolution;
                 ctR.cubeDim = dij.doseGrid.dimensions;
                 ctR.x = dij.doseGrid.x;
                 ctR.y = dij.doseGrid.y;
                 ctR.z = dij.doseGrid.z;
 
+                % Write resampled cubes
                 ctR.cubeHU = cubeHUresampled;
                 ctR.cube = cubeResampled;
 
-                %Set flag for complete resampling
+                % Set flag for complete resampling
                 ctR.resampled = 1;
                 ctR.ctGrid = dij.ctGrid;
             else
@@ -311,18 +365,22 @@ classdef MatRad_TopasConfig < handle
         end
 
         function resultGUI = readExternal(obj,folder)
-            % function to read out for beams in x-, y- or z-direction
+            % function to read out complete TOPAS simulation from single folder or multiple folders for modulation
             %
             % call
-            %   topasCube = topasConfig.read(folder,dij)
-            %   topasCube = obj.read(folder,dij)
+            %   topasCube = topasConfig.readExternal(folder)
+            %   topasCube = obj.readExternal(folder)
             %
             % input
-            %   folder:         Path to folder where TOPAS files are in (as string)
-            %   dij:            dij struct (this part needs update)
+            %   folder:         Path to folder(s) where TOPAS files are in (as string)
+            %                   Use * placeholder in case of multiple folders
             %
             % output
             %   topasCube:      struct with all read out subfields
+            %
+            % EXAMPLE calls:
+            %   topasCube = topasConfig.readExternal('pathToFolder')
+            %   topasCube = topasConfig.readExternal('pathToFolders*')
             %
             % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             %
@@ -336,8 +394,12 @@ classdef MatRad_TopasConfig < handle
             % LICENSE file.
             %
             % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            if contains(folder,'*')% && all(modulation ~= false)
+            
+            % Process input folder path
+            if contains(folder,'*')
+                % Multiple folders in case of modulation
                 folder = dir(folder);
+                folders = cell(1,length(folder));
                 for i = 1:length(folder)
                     if any(isstrprop(folder(i).name(end-4:end),'digit'))
                         folders{i} = [folder(i).folder filesep folder(i).name];
@@ -346,35 +408,54 @@ classdef MatRad_TopasConfig < handle
             else
                 folders{1} = folder;
             end
+            
+            % Sort out empty folders
             folders = folders(~cellfun('isempty',folders));
+            
+            % Set sample variable of multiple folders are detected
             numOfSamples = length(folders);
 
+            % Loop over samples
             for f = 1:numOfSamples
+                
+                % Use try-catch block to output specific error if a folder cannot be processed
                 try
+                    % Set current folder
                     currFolder = folders{f};
+                    
+                    % Load in saved MC parameters
+                    if isfile([currFolder filesep 'MCparam.mat'])
+                        obj.MCparam = load([currFolder filesep 'MCparam.mat'],'MCparam');
+                        obj.MCparam = obj.MCparam.MCparam;
+                    end
+                    
+                    % External reading does not support 4D yet
+                    ctScen = 1;
+                    
+                    % Create empty dij
+                    dij.numOfScenarios = ctScen;
+                    dij.numOfBeams = max(obj.MCparam.beamNum);
+                    % needs to be tested for plans with multiple bixels ^^
+                    dij.totalNumOfBixels = sum(obj.MCparam.bixelNum);
+                    dij.totalNumOfRays = sum(obj.MCparam.rayNum);
+                    dij.bixelNum = obj.MCparam.bixelNum;
+                    dij.rayNum = obj.MCparam.rayNum;
+                    dij.beamNum = obj.MCparam.beamNum;
+                    
+                    % Read out all TOPAS fields
                     topasCubes = obj.read(currFolder);
-
-                    d = dir([currFolder filesep 'score_matRad_plan_field1_run1_*']);
-                    [~,~,outputType] = fileparts(d(1).name);
-                    files = dir([currFolder filesep 'score_matRad_plan_field1_run1_*' outputType]);
-                    tallies = cellfun(@(x) erase(x,{'score_matRad_plan_field1_run1_', outputType}) ,{files(:).name} ,'UniformOutput' ,false);
-
-                    % check if all fields are filled.
+                    
+                    % Check if all fields in topasCubes are filled.
                     if any(structfun(@isempty, topasCubes)) || any(structfun(@(x) all(x(:)==0), topasCubes))
                         obj.matRad_cfg.dispWarning('Field in topasCubes resulted in either empty or all zeros.')
                     end
+                   
+                    % Load weights from parameter variabla                    
+                    w = obj.MCparam.weights;
 
-                    loadedVars = load([currFolder filesep 'dij.mat'],'dij');
-                    dij = loadedVars.dij;
-                    loadedVars = load([currFolder filesep 'weights.mat'],'w');
-                    w = loadedVars.w;
-
-                    ctScen = 1;
-                    fnames = fieldnames(topasCubes);
-                    dij.MC_tallies = fnames;
-
+                    % Process physicalDose and doseToWater fields
                     for d = 1:dij.numOfBeams
-                        doseFields = tallies(contains(tallies,'dose','IgnoreCase',true));
+                        doseFields = obj.MCparam.tallies(contains(obj.MCparam.tallies,'dose','IgnoreCase',true));
                         for j = 1:numel(doseFields)
                             dij.(doseFields{j}){ctScen,1}(:,d)                   = sum(w)*reshape(topasCubes.([doseFields{j} '_beam',num2str(d)]),[],1);
                             if any(contains(fieldnames(topasCubes),'_std'))
@@ -385,14 +466,16 @@ classdef MatRad_TopasConfig < handle
                             end
                         end
                     end
-
+                
+                    % Process RBE fields
+                    fnames = fieldnames(topasCubes);
                     if any(contains(fnames,'alpha','IgnoreCase',true))
                         for d = 1:dij.numOfBeams
-                            abFields = tallies(contains(tallies,{'alpha','beta','LET'},'IgnoreCase',true));
+                            abFields = obj.MCparam.tallies(contains(obj.MCparam.tallies,{'alpha','beta','LET'},'IgnoreCase',true));
                             for j = 1:numel(abFields)
                                 dij.(abFields{j}){ctScen,1}(:,d)        = reshape(topasCubes.([abFields{j} '_beam',num2str(d)]),[],1);
                             end
-
+                            
                             % find first available model for RBE evaluation
                             for j = 1:numel(obj.scorerRBEmodelOrderForEvaluation)
                                 if any(contains(fnames,obj.scorerRBEmodelOrderForEvaluation{j}))
@@ -400,22 +483,18 @@ classdef MatRad_TopasConfig < handle
                                     break
                                 end
                             end
-
-                            % Either dose to water or dose to medium (physical Dose) used to calculate alpha and sqrt(beta) doses
+                            
+                            % Use dose to medium (physical Dose) to calculate alpha and sqrt(beta) doses
                             dij.(['mAlphaDose_' model]){ctScen,1}(:,d)           = dij.(['alpha_' model]){ctScen,1}(:,d) .* dij.physicalDose{ctScen,1}(:,d);
                             dij.(['mSqrtBetaDose_' model]){ctScen,1}(:,d)        = sqrt(dij.(['beta_' model]){ctScen,1}(:,d)) .* dij.physicalDose{ctScen,1}(:,d);
-                            %                 dij.mAlphaDose{ctScen,1}(:,d)           = dij.(['alpha_' model]){ctScen,1}(:,d) .* dij.doseToWater{ctScen,1}(:,d);
-                            %                 dij.mSqrtBetaDose{ctScen,1}(:,d)        = sqrt(dij.(['beta_' model]){ctScen,1}(:,d)) .* dij.physicalDose{ctScen,1}(:,d);
                         end
                     end
-
+%%
+                    % Postprocess TOPAS dij using calcCubesMC function
                     if numOfSamples > 1
                         outDose    = matRad_calcCubesMC(ones(dij.numOfBeams,1),dij,1);
-                        %             if any(contains(fieldnames(outDose),'alpha'))
-                        %                 names = fieldnames(outDose);
-                        %                 alphaFields = names((contains(names,{'alpha','beta','effect','RBE'}) + ~contains(names,{'RBExD'})) > 1);
-                        %             end
-                        if ~exist('resultGUI')
+                        if ~exist('resultGUI','var')
+                            beamInfo = struct;
                             for i = 1:dij.numOfBeams
                                 beamInfo(i).suffix = ['_beam', num2str(i)];
                             end
@@ -427,13 +506,11 @@ classdef MatRad_TopasConfig < handle
                                 if any(contains(fieldnames(outDose),'alpha'))
                                     resultGUI.(['RBExD_' model beamInfo(i).suffix]) = zeros(dij.ctGrid.dimensions);
                                 end
-                                %
-                                %                     for k = 1:length(alphaFields)
-                                %                         resultGUI.(alphaFields{k}) = cell(1,numOfSamples);
-                                %                     end
+                                % Order fields alphabetically for convenience (group fields together)
                                 resultGUI = orderfields(resultGUI);
                             end
                         end
+                        %
                         if any(contains(fieldnames(outDose),'_std'))
                             for i = 1:length(beamInfo)
                                 resultGUI.(['physicalDose_std', beamInfo(i).suffix]) = resultGUI.(['physicalDose_std' beamInfo(i).suffix]) + outDose.(['physicalDose_std' beamInfo(i).suffix])/numOfSamples;
@@ -472,7 +549,7 @@ classdef MatRad_TopasConfig < handle
         end
 
         function topasCube = read(obj,folder,dij)
-            % function to read out for beams in x-, y- or z-direction
+            % function to read out TOPAS data
             %
             % call
             %   topasCube = topasConfig.read(folder,dij)
@@ -502,12 +579,9 @@ classdef MatRad_TopasConfig < handle
             else
                 calcDoseDirect = false;
             end
-
-            if isfile([folder filesep 'MCparam.mat'])
-                MCparam = load([folder filesep 'MCparam.mat']);
-                obj.MCparam = MCparam.MCparam;
-            end
-
+            
+%          obj.MCparam.scoreReportQuantity = 'Sum';
+            % Process reportQuantities (for example 'Sum' or 'Standard_Deviation'
             if iscell(obj.MCparam.scoreReportQuantity)
                 obj.MCparam.numOfReportQuantities = length(obj.MCparam.scoreReportQuantity);
             else
@@ -515,11 +589,11 @@ classdef MatRad_TopasConfig < handle
                 obj.MCparam.scoreReportQuantity = {obj.MCparam.scoreReportQuantity};
             end
 
-            %Normalize with histories and particles/weight
+            % Normalize with histories and particles/weight
             correctionFactor = 1e6 / double(obj.MCparam.nbHistoriesTotal); %double(obj.MCparam.nbParticlesTotal) / double(obj.MCparam.nbHistoriesTotal);
 
             cubeDim = obj.MCparam.imageCubeDim;
-            % load in all data
+            % Load in all data
             switch obj.MCparam.outputType
                 case 'csv'
                     files = dir([folder filesep 'score_matRad_plan_field1_run1_*.csv']);
@@ -530,20 +604,22 @@ classdef MatRad_TopasConfig < handle
             end
 
             if calcDoseDirect
+                % Load data for each tally individually
                 for t = 1:length(obj.MCparam.tallies)
                     tname = obj.MCparam.tallies{t};
-
+                    % Loop over all beams/fields
                     for f = 1:obj.MCparam.nbFields
+                        % Loop over all batches/runs
                         for k = 1:obj.MCparam.nbRuns
                             genFileName = sprintf('score_%s_field%d_run%d_%s',obj.MCparam.simLabel,f,k,tname);
                             switch obj.MCparam.outputType
                                 case 'csv'
                                     % output as csv needs to be cleaned up
                                     genFullFile = fullfile(folder,[genFileName '.csv']);
-                                    data{k} = matRad_readCsvData(genFullFile,cubeDim);
+                                    data{k} = matRad_readCsvData(genFullFile,obj.MCparam.imageCubeDim);
                                 case 'binary'
                                     genFullFile = fullfile(folder,[genFileName '.bin']);
-                                    dataRead = matRad_readBinData(genFullFile,cubeDim);
+                                    dataRead = obj.readBinData(genFullFile);
 
                                     % binheader file could be used here to determine the actually used reportQuantities
                                     for i = 1:numel(dataRead)
@@ -642,6 +718,33 @@ classdef MatRad_TopasConfig < handle
 
     methods (Access = private)
 
+        
+        function dataOut = readBinData(~,genFullFile)
+            
+            % Isolate filename without ending
+            [folder, filename] = fileparts(genFullFile);
+            strippedFileName = [folder filesep filename];
+            
+            % Read binheader file to get cubeDim and number of scorers automatically
+            fID = fopen([strippedFileName '.binheader']);
+            header = textscan(fID,'%c');
+            fclose(fID);
+            
+            % Split header in rows
+            header = strsplit(header{1}','#')';
+
+            % Find rows where number of bins are stored
+            xLine = find(cellfun(@(x) ~isempty(x), strfind(header,'Xin')));
+            cubeDim(1) = str2double(header{xLine}(4:strfind(header{xLine},'binsof')-1));
+            cubeDim(2) = str2double(header{xLine+1}(4:strfind(header{xLine+1},'binsof')-1));
+            cubeDim(3) = str2double(header{xLine+2}(4:strfind(header{xLine+2},'binsof')-1));
+
+            % Read out bin data
+            dataOut = matRad_readBinData(genFullFile,cubeDim);
+            
+        end
+        
+        
         function writeRunHeader(obj,fID,fieldIx,runIx)
 
             fprintf(fID,'s:Sim/PlanLabel = "%s"\n',obj.label);
@@ -672,13 +775,15 @@ classdef MatRad_TopasConfig < handle
                 fprintf(fID,'sv:Sim/DoseScorerReport = 1 "%s"\n',obj.scorer.reportQuantity);
             end
             fprintf(fID,'\n');
-
+            fprintf(fID,['i:Ts/Seed = ',num2str(runIx),'\n']);
+            
             %fprintf(fID,'includeFile = %s/TOPAS_Simulation_Setup.txt\n',obj.thisFolder);
             %fprintf(fID,'includeFile = %s/TOPAS_matRad_geometry.txt\n',obj.thisFolder);
             %fprintf(fID,'includeFile = %s/TOPAS_scorer_surfaceIC.txt\n',obj.thisFolder);
         end
 
-        function writeFieldHeader(obj,fID,fieldIx)
+        function writeFieldHeader(obj,fID)
+            
             fprintf(fID,'u:Sim/HalfValue = %d\n',0.5);
             fprintf(fID,'u:Sim/SIGMA2FWHM = %d\n',2.354818);
             fprintf(fID,'u:Sim/FWHM2SIGMA = %d\n',0.424661);
@@ -695,6 +800,7 @@ classdef MatRad_TopasConfig < handle
             obj.matRad_cfg.dispInfo('Reading Geometry from %s\n',fname);
             world = fileread(fname);
             fprintf(fID,'%s\n',world);
+            
         end
 
         function writeScorers(obj,fID)
@@ -707,69 +813,78 @@ classdef MatRad_TopasConfig < handle
                 obj.matRad_cfg.dispDebug('Reading doseToMedium scorer from %s\n',fname);
                 scorerName = fileread(fname);
                 fprintf(fID,'%s\n',scorerName);
+                % Update MCparam.tallies with processed scorer
                 obj.MCparam.tallies = [obj.MCparam.tallies,{'physicalDose'}];
             end
 
             % write RBE scorer
             if obj.scorer.RBE
                 for i = 1:length(obj.scorer.RBE_model)
-                    if strcmp(obj.radiationMode,'protons')
-                        if contains(obj.scorer.RBE_model{i},'MCN')
-                            fname = fullfile(obj.thisFolder,filesep,obj.scorerFolder,filesep,obj.infilenames.Scorer_RBE_MCN);
-                        elseif strcmp(obj.scorer.RBE_model{i},'WED')
-                            fname = fullfile(obj.thisFolder,filesep,obj.scorerFolder,filesep,obj.infilenames.Scorer_RBE_WED);
-                        else
+                    switch obj.radiationMode
+                        case 'protons'
+                            % Process available varRBE models for protons
+                            if contains(obj.scorer.RBE_model{i},'MCN')
+                                fname = fullfile(obj.thisFolder,filesep,obj.scorerFolder,filesep,obj.infilenames.Scorer_RBE_MCN);
+                            elseif strcmp(obj.scorer.RBE_model{i},'WED')
+                                fname = fullfile(obj.thisFolder,filesep,obj.scorerFolder,filesep,obj.infilenames.Scorer_RBE_WED);
+                            else
+                                obj.matRad_cfg.dispError(['Model ',obj.scorer.RBE_model{i},' not implemented for ',obj.radiationMode]);
+                            end
+                        case {'carbon','helium'}
+                            % Process available varRBE models for carbon and helium
+                            if contains(obj.scorer.RBE_model{i},'libamtrack')
+                                fname = fullfile(obj.thisFolder,filesep,obj.scorerFolder,filesep,obj.infilenames.Scorer_RBE_libamtrack);
+                            elseif contains(obj.scorer.RBE_model{i},'LEM')
+                                fname = fullfile(obj.thisFolder,filesep,obj.scorerFolder,filesep,obj.infilenames.Scorer_RBE_LEM1);
+                            else
+                                obj.matRad_cfg.dispError(['Model ',obj.scorer.RBE_model{i},' not implemented for ',obj.radiationMode]);
+                            end
+                        otherwise
+                            % Throw error in case an invalid radiationMode has been selected
                             obj.matRad_cfg.dispError(['Model ',obj.scorer.RBE_model{i},' not implemented for ',obj.radiationMode]);
-                        end
-                    elseif strcmp(obj.radiationMode,'carbon') || strcmp(obj.radiationMode,'helium')
-                        if contains(obj.scorer.RBE_model{i},'libamtrack')
-                            fname = fullfile(obj.thisFolder,filesep,obj.scorerFolder,filesep,obj.infilenames.Scorer_RBE_libamtrack);
-                        elseif contains(obj.scorer.RBE_model{i},'LEM')
-                            fname = fullfile(obj.thisFolder,filesep,obj.scorerFolder,filesep,obj.infilenames.Scorer_RBE_LEM1);
-                        else
-                            obj.matRad_cfg.dispError(['Model ',obj.scorer.RBE_model{i},' not implemented for ',obj.radiationMode]);
-                        end
-                    else
-                        obj.matRad_cfg.dispError(['Model ',obj.scorer.RBE_model{i},' not implemented for ',obj.radiationMode]);
                     end
-
+                    
+                    % Read appropriate scorer from file and write to config file
                     obj.matRad_cfg.dispDebug('Reading RBE Scorer from %s\n',fname);
                     scorerName = fileread(fname);
                     fprintf(fID,'%s\n',scorerName);
                 end
-
-                if strcmp(obj.radiationMode,'protons')
-                    fprintf(fID,'\n### Biological Parameters ###\n');
-                    fprintf(fID,'sv:Sc/CellLines = 1 "CellLineGeneric"\n');
-                    fprintf(fID,'d:Sc/CellLineGeneric/Alphax 		= Sc/AlphaX /Gy\n');
-                    fprintf(fID,'d:Sc/CellLineGeneric/Betax 		= Sc/BetaX /Gy2\n');
-                    fprintf(fID,'d:Sc/CellLineGeneric/AlphaBetaRatiox 	= Sc/AlphaBetaX Gy\n\n');
-                elseif strcmp(obj.radiationMode,'carbon') || strcmp(obj.radiationMode,'helium')
-                    fprintf(fID,'\n### Biological Parameters ###\n');
-                    fprintf(fID,'sv:Sc/CellLines = 1 "CellGeneric_abR2"\n');
-                    fprintf(fID,'d:Sc/CellGeneric_abR2/Alphax = Sc/AlphaX /Gy\n');
-                    fprintf(fID,'d:Sc/CellGeneric_abR2/Betax = Sc/BetaX /Gy2\n\n');
-                    % fprintf(fID,'d:Sc/CellGeneric_abR2/AlphaBetaRatiox 	= Sc/AlphaBetaX Gy\n');
-                else
-                    obj.matRad_cfg.dispError([obj.radiationMode ' not implemented']);
+                
+                % Begin writing biological scorer components: cell lines
+                switch obj.radiationMode
+                    case 'protons'
+                        fprintf(fID,'\n### Biological Parameters ###\n');
+                        fprintf(fID,'sv:Sc/CellLines = 1 "CellLineGeneric"\n');
+                        fprintf(fID,'d:Sc/CellLineGeneric/Alphax 		= Sc/AlphaX /Gy\n');
+                        fprintf(fID,'d:Sc/CellLineGeneric/Betax 		= Sc/BetaX /Gy2\n');
+                        fprintf(fID,'d:Sc/CellLineGeneric/AlphaBetaRatiox 	= Sc/AlphaBetaX Gy\n\n');
+                    case {'carbon','helium'}
+                        fprintf(fID,'\n### Biological Parameters ###\n');
+                        fprintf(fID,'sv:Sc/CellLines = 1 "CellGeneric_abR2"\n');
+                        fprintf(fID,'d:Sc/CellGeneric_abR2/Alphax = Sc/AlphaX /Gy\n');
+                        fprintf(fID,'d:Sc/CellGeneric_abR2/Betax = Sc/BetaX /Gy2\n\n');
+                        % fprintf(fID,'d:Sc/CellGeneric_abR2/AlphaBetaRatiox 	= Sc/AlphaBetaX Gy\n');
+                    otherwise
+                        obj.matRad_cfg.dispError([obj.radiationMode ' not implemented']);
                 end
-
-                % write biological scorer components.
+                
+                % write biological scorer components: dose parameters
                 obj.matRad_cfg.dispDebug('Writing Biologial Scorer components.\n');
                 fprintf(fID,'d:Sc/PrescribedDose = %.4f Gy\n',obj.bioParam.PrescribedDose);
                 fprintf(fID,'b:Sc/SimultaneousExposure = %s\n',obj.bioParam.SimultaneousExposure);
                 fprintf(fID,'d:Sc/AlphaX = %.4f /Gy\n',obj.bioParam.AlphaX);
                 fprintf(fID,'d:Sc/BetaX = %.4f /Gy2\n',obj.bioParam.BetaX);
                 fprintf(fID,'d:Sc/AlphaBetaX = %.4f Gy\n',obj.bioParam.AlphaX/obj.bioParam.BetaX);
-
-                % obj.MCparam.tallies = [obj.MCparam.tallies,{'alpha','beta','RBE'}];
+                
+                % Update MCparam.tallies with processed scorer
                 for i = 1:length(obj.scorer.RBE_model)
                     obj.MCparam.tallies = [obj.MCparam.tallies,{['alpha_' obj.scorer.RBE_model{i}],['beta_' obj.scorer.RBE_model{i}]}];
                 end
             end
-
-            % write share sub-scorer
+            
+            % Write share sub-scorer
             if obj.scorer.sharedSubscorers && obj.scorer.RBE
+                % Select appropriate scorer from selected flags
                 scorerNames = {'Alpha','Beta'};
                 if any(contains(obj.scorer.RBE_model,'MCN'))
                     obj.scorer.LET = true;
@@ -783,7 +898,8 @@ classdef MatRad_TopasConfig < handle
                     obj.scorer.doseToWater = true;
                     scorerPrefix = 'tabulated';
                 end
-
+                
+                % Write subscorer to config files
                 for s = 1:length(scorerNames)
                     if strcmp(obj.radiationMode,'protons')
                         fprintf(fID,'s:Sc/%s%s/ReferencedSubScorer_LET      = "ProtonLET"\n',scorerPrefix,scorerNames{s});
@@ -791,30 +907,34 @@ classdef MatRad_TopasConfig < handle
                     fprintf(fID,'s:Sc/%s%s/ReferencedSubScorer_Dose     = "Tally_DoseToWater"\n',scorerPrefix,scorerNames{s});
                 end
             end
-
-            % write dose to water scorer
+            
+            % write dose to water scorer from file
             if obj.scorer.doseToWater
                 fname = fullfile(obj.thisFolder,filesep,obj.scorerFolder,filesep,obj.infilenames.Scorer_doseToWater);
                 obj.matRad_cfg.dispDebug('Reading doseToWater scorer from %s\n',fname);
                 scorerName = fileread(fname);
                 fprintf(fID,'%s\n',scorerName);
+                
+                % Update MCparam.tallies with processed scorer
                 obj.MCparam.tallies = [obj.MCparam.tallies,{'doseToWater'}];
             end
-
-            % write LET scorer
+            
+            % write LET scorer from file
             if obj.scorer.LET
                 if strcmp(obj.radiationMode,'protons')
                     fname = fullfile(obj.thisFolder,filesep,obj.scorerFolder,filesep,obj.infilenames.Scorer_LET);
                     obj.matRad_cfg.dispDebug('Reading LET Scorer from %s\n',fname);
                     scorerName = fileread(fname);
                     fprintf(fID,'%s\n',scorerName);
+                    
+                    % Update MCparam.tallies with processed scorer
                     obj.MCparam.tallies = [obj.MCparam.tallies,{'LET'}];
                 else
                     obj.matRad_cfg.dispError('LET in TOPAS only for protons!\n');
                 end
             end
-
-            % write volume scorer
+            
+            % write volume scorer from file
             if obj.scorer.volume
                 fileList = dir(fullfile(obj.thisFolder,filesep,obj.scorerFolder,filesep,'TOPAS_scorer_volume_*.in'));
                 for fileIx=1:length(fileList)
@@ -824,16 +944,20 @@ classdef MatRad_TopasConfig < handle
                     fprintf(fID,'%s\n',scorerName);
                     tallyLabel = regexprep(fileList(fileIx).name,'TOPAS_scorer_volume_','');
                     tallyLabel = regexprep(tallyLabel,'.txt.in','');
+                    
+                    % Update MCparam.tallies with processed scorer
                     obj.MCparam.tallies = [obj.MCparam.tallies,{tallyLabel}];
                 end
             end
-
-            % write surface track count
+            
+            % write surface track count from file
             if obj.scorer.surfaceTrackCount
                 fname = fullfile(obj.thisFolder,filesep,obj.scorerFolder,filesep,obj.infilenames.Scorer_surfaceTrackCount);
                 obj.matRad_cfg.dispDebug('Reading surface scorer from %s\n',fname);
                 scorerName = fileread(fname);
                 fprintf(fID,'%s\n',scorerName);
+                
+                % Update MCparam.tallies with processed scorer
                 obj.MCparam.tallies = [obj.MCparam.tallies,{'IC'}];
             end
         end
@@ -1046,7 +1170,7 @@ classdef MatRad_TopasConfig < handle
                 %write TOPAS data base file
                 fieldSetupFileName = sprintf('beamSetup_%s_field%d.txt',obj.label,beamIx);
                 fileID = fopen(fullfile(obj.workingDir,fieldSetupFileName),'w');
-                obj.writeFieldHeader(fileID,beamIx);
+                obj.writeFieldHeader(fileID);
 
                 % NozzleAxialDistance
                 fprintf(fileID,'d:Ge/Nozzle/TransZ = -%f mm\n', nozzleToAxisDistance);
@@ -1055,34 +1179,34 @@ classdef MatRad_TopasConfig < handle
                     fprintf(fileID,'d:Ge/Nozzle/RotY = Tf/Beam/AngleY/Value rad\n');
                     fprintf(fileID,'d:Ge/Nozzle/RotZ = 0.0 rad\n\n');
                 end
-
+                
                 %Write modality specific info
                 switch stf(beamIx).radiationMode
                     case 'protons'
                         fprintf(fileID,'s:Sim/ParticleName = "proton"\n');
                         fprintf(fileID,'u:Sim/ParticleMass = 1.0\n');
-
+                        
                         particleA = 1;
-                        particleZ = 1;
-
+                        % particleZ = 1;
+                        
                         modules = obj.modules_protons;
-
+                        
                     case 'carbon'
                         fprintf(fileID,'s:Sim/ParticleName = "GenericIon(6,12)"\n');
                         fprintf(fileID,'u:Sim/ParticleMass = 12.0\n');
-
+                        
                         particleA = 12;
-                        particleZ = 6;
-
+                        % particleZ = 6;
+                        
                         modules = obj.modules_GenericIon;
-
+                        
                     case 'helium'
                         fprintf(fileID,'s:Sim/ParticleName = "GenericIon(2,4)"\n');
                         fprintf(fileID,'u:Sim/ParticleMass = 4.0\n');
-
+                        
                         particleA = 4;
-                        particleZ = 2;
-
+                        % particleZ = 2;
+                        
                         modules = obj.modules_GenericIon;
                         %{
                     case 'photons' %This modality is not yet used!
@@ -1098,7 +1222,7 @@ classdef MatRad_TopasConfig < handle
                     otherwise
                         obj.matRad_cfg.dispError('Invalid radiation mode %s!',stf.radiationMode)
                 end
-
+                
                 fprintf(fileID,'d:Sim/GantryAngle = %f deg\n',stf(beamIx).gantryAngle);
                 fprintf(fileID,'d:Sim/CouchAngle = %f deg\n',stf(beamIx).couchAngle);
 
@@ -1263,10 +1387,17 @@ classdef MatRad_TopasConfig < handle
                 for runIx = 1:obj.numOfRuns
                     runFileName = sprintf('%s_field%d_run%d.txt',obj.label,beamIx,runIx);
                     fileID = fopen(fullfile(obj.workingDir,runFileName),'w');
+                    
+                    % Write header
                     obj.writeRunHeader(fileID,beamIx,runIx);
-                    fprintf(fileID,['i:Ts/Seed = ',num2str(runIx),'\n']);
+
+                    % Include path to beamSetup file
                     fprintf(fileID,'includeFile = ./%s\n',fieldSetupFileName);
+                    
+                    % Write lines from scorer files
                     obj.writeScorers(fileID);
+                   
+                    % Write dij-related config lines
                     if obj.scorer.Dij
                         fprintf(fileID,'s:Tf/ImageName/Function = "Step"\n');
                         % create time feature scorer and save with original rays and bixel names
@@ -1366,7 +1497,7 @@ classdef MatRad_TopasConfig < handle
                     end
                     fclose(fbase);
 
-                    unique_materials = [];
+                    unique_materials = cell(1,length(unique_hu));
                     for ix=1:length(unique_hu)
                         unique_materials{ix} = strrep(['Material_HU_',num2str(unique_hu(ix))],'-','m');
                         fprintf(fID,'s:Ma/%s/BaseMaterial = "%s"\n',unique_materials{ix},medium);
@@ -1602,7 +1733,6 @@ classdef MatRad_TopasConfig < handle
 
         function writeMCparam(obj)
             %write MCparam file with basic parameters
-
             MCparam = obj.MCparam;
             save(fullfile(obj.workingDir,'MCparam.mat'),'MCparam','-v7');
         end

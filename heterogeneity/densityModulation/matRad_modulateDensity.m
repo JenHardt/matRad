@@ -51,7 +51,7 @@ end
 switch pln.propHeterogeneity.sampling.method
     case 'binomial'
         % set lung tissue density
-        rhoLung = 1.05; % [2] [g/cm³]
+        rhoLung = 1.05; % [2] [g/cm^3]
 
         % isolate lung densities and normalize to lung tissue density
         pLung = ct.cube{1}(lungIdx) / rhoLung;
@@ -81,10 +81,13 @@ switch pln.propHeterogeneity.sampling.method
         lungIdx = lungIdx(largeEnough);
         pLung = pLung(largeEnough);
         n = n(largeEnough);
-
+        
         % get samples from the binomial distribution (discrete or continuous approximation)
-        samples = matRad_sampleLungBino(n,pLung,rhoLung,length(lungIdx),pln.propHeterogeneity.sampling.continuous);
-
+        samples = matRad_sampleBino(n,pLung,length(lungIdx),pln.propHeterogeneity.sampling.continuous);
+        
+        % revert normalization to get values between [0,rhoLung]
+        samples = samples * rhoLung;
+        
         % write samples to CT and convert to Hounsfield Units
         ct.cube{1}(lungIdx) = samples;
         ct.cubeHU{1}(lungIdx) = 1024*(ct.cube{1}(lungIdx)-1);
