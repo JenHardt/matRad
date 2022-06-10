@@ -432,7 +432,12 @@ classdef matRad_bioModel
                   
                case {'protons_WED'}
                   
-                  bixelLET = matRad_interp1(depths,baseDataEntry.LET,vRadDepths);
+                  if exist('LETin','var') && ~isempty(LETin)
+                      LET = LETin;
+                  else
+                      LET = baseDataEntry.LET;
+                  end
+                  bixelLET = matRad_interp1(depths,LET,vRadDepths);
                   bixelLET(isnan(bixelLET)) = 0;
                   
                   RBEmax     = this.p0_WED + ((this.p1_WED * bixelLET )./ vABratio);
