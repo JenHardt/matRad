@@ -1,4 +1,4 @@
-function dij = matRad_calcParticleDoseMCtopas(ct,stf,pln,cst,calcDoseDirect)
+function topasCubes = matRad_calcParticleDoseMCtopas(ct,stf,pln,cst,calcDoseDirect)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % matRad TOPAS Monte Carlo proton dose calculation wrapper
 %   This calls a TOPAS installation (not included in matRad due to
@@ -177,9 +177,9 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
 
                 % actually write TOPAS files
                 if calcDoseDirect
-                    topasConfig.writeAllFiles(ctR,pln,stf,machine,w(:,ctScen));
+                    topasConfig.writeAllFiles(ctR,cst,pln,stf,machine,w(:,ctScen));
                 else
-                    topasConfig.writeAllFiles(ctR,pln,stf,machine);
+                    topasConfig.writeAllFiles(ctR,cst,pln,stf,machine);
                 end
 
                 % change director back to original directory
@@ -201,9 +201,6 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                             % initiate parallel runs and delete previous files
                             if topasConfig.parallelRuns
                                 finishedFiles{runIx} = sprintf('%s.finished',fname);
-                                if isfile(finishedFiles{runIx})
-                                    delete(finishedFiles{runIx});
-                                end
                                 topasCall = [topasCall '; touch ' finishedFiles{runIx} ' &'];
                             end
 
@@ -233,76 +230,26 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                                 fin = cellfun(@(f) exist(f,'file'),finishedFiles);
                                 runsFinished = all(fin);
                             end
+                            % Delete marker files
+                            delete(finishedFiles{:});
                         end
 
                     end
 
                     % revert back to original directory
                     cd(currDir);
-
-                    %% Simulation finished - read out volume scorers from topas simulation
-                    if calcDoseDirect
-                        topasCubes = topasConfig.read(topasConfig.workingDir);
-                    else
-                        topasCubes = topasConfig.read(topasConfig.workingDir,dij);
-                    end
-
-                    % save fieldnames to dij for later use and debug
-                    fnames = fieldnames(topasCubes);
-                    dij.MC_tallies = fnames;
-
-                    % Process read out topasCubes into matRad dij format
-                    if calcDoseDirect
-                        if any(contains(fnames,'physicalDose'))
-                            for d = 1:length(stf)
-                                dij.physicalDose{ctScen,1}(:,d)    = sum(w)*reshape(topasCubes.(['physicalDose_beam',num2str(d)]),[],1);
-                            end
-                        end
-                        if any(contains(fnames,'doseToWater'))
-                            for d = 1:length(stf)
-                                dij.doseToWater{ctScen,1}(:,d)    = sum(w)*reshape(topasCubes.(['doseToWater_beam',num2str(d)]),[],1);
-                            end
-                        end
-                        if any(contains(fnames,'alpha'))
-                            abFields = fnames(contains(fnames,{'alpha','beta'}));
-                            for ab = 1:length(abFields)
-                                model = strsplit(abFields{ab},'_');
-                                models{ab} = char(model(2));
-                            end
-                            models = unique(models);
-
-                            for m = 1:length(models)
-                                for d = 1:length(stf)
-                                    dij.(['alpha_' models{m}]){ctScen,1}(:,d)           = reshape(topasCubes.(['alpha_' models{m} '_beam',num2str(d)]),[],1);
-                                    dij.(['beta_' models{m}]){ctScen,1}(:,d)           = reshape(topasCubes.(['beta_' models{m} '_beam',num2str(d)]),[],1);
-
-                                    dij.(['mAlphaDose_' models{m}]){ctScen,1}(:,d)      = dij.physicalDose{ctScen,1}(:,d) .* dij.(['alpha_' models{m}]){ctScen,1}(:,d);
-                                    dij.(['mSqrtBetaDose_' models{m}]){ctScen,1}(:,d)   = sqrt(dij.physicalDose{ctScen,1}(:,d)) .* dij.(['beta_' models{m}]){ctScen,1}(:,d);
-                                end
-                            end
-                        end
-                        if any(contains(fnames,'physicalDose_std'))
-                            for d = 1:length(stf)
-                                dij.physicalDose_std{ctScen,1}(:,d)    = sum(w)*reshape(topasCubes.(['physicalDose_std_beam',num2str(d)]),[],1);
-                            end
-                        end
-                        if any(contains(fnames,'LET'))
-                            for d = 1:length(stf)
-                                dij.LET{ctScen,1}(:,d)    = reshape(topasCubes.(['LET_beam',num2str(d)]),[],1);
-                                dij.mLETDose{ctScen,1}(:,d) = dij.physicalDose{ctScen,1}(:,d) .*  dij.LET{ctScen,1}(:,d);
-                            end
-                        end
-                    else
-                        for f = 1:numel(fnames)
-                            for d = 1:stf(f).totalNumOfBixels
-                                dij.physicalDose{1}(:,d) = reshape(topasCubes.(fnames{f}){d},[],1);
-                            end
-                        end
-                    end
+               
                 end
             end
         end
     end
+end
+
+%% Simulation(s) finished - read out volume scorers from topas simulation
+if calcDoseDirect
+    topasCubes = topasConfig.readFiles(topasConfig.workingDir);
+else
+    topasCubes = topasConfig.readFiles(topasConfig.workingDir,dij);
 end
 
 % manipulate isocenter back

@@ -93,7 +93,7 @@ if pln.propHeterogeneity.calcHetero
     end
 end
 
-if pln.propHeterogeneity.useOriginalDepths || ~pln.propHeterogeneity.calcHetero
+if pln.propHeterogeneity.calcHetero && (pln.propHeterogeneity.useOriginalDepths || ~pln.propHeterogeneity.calcHetero)
     machine.data = matRad_overrideBaseData(machine.data);
 end
 
@@ -123,7 +123,7 @@ if pln.bioParam.bioOpt
 
 end
 
-if  pln.propDoseCalc.calcLET
+if pln.propDoseCalc.calcLET
     if isfield(machine.data,'LET')
 
         letDoseTmpContainer = cell(numOfBixelsContainer,pln.multScen.numOfCtScen,pln.multScen.totNumShiftScen,pln.multScen.totNumRangeScen);

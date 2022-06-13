@@ -166,28 +166,20 @@ if isfield(dij,'MC_tallies')
     end
 end
 
-% Remove suffix for RBExD if there's only one available
-if any(contains(fieldnames(dij),'alpha')) && isfield(dij,'RBE_models') && length(dij.RBE_models) == 1
-    % Get fieldnames that include the specified RBE model
-    fnames = fieldnames(resultGUI);
-    fnames = fnames(contains(fnames,dij.RBE_models{1}));
-
-    % Rename fields and remove model specifier if there's only one
-    for f = 1:length(fnames)
-        resultGUI.(erase(fnames{f},['_',dij.RBE_models{1}])) = resultGUI.(fnames{1});
-    end
-
-    % Remove old fields
-    resultGUI = rmfield(resultGUI,fnames);
-end
-
 % group similar fields together
 resultGUI = orderfields(resultGUI);
+
+% Remove suffix for RBExD if there's only one available
+if any(contains(fieldnames(dij),'alpha')) && isfield(dij,'RBE_models') && length(dij.RBE_models) == 1
+    fnames = fieldnames(resultGUI);
+    fnames2 = cellfun(@(x) strsplit(x,'_'), fnames(contains(fnames,'alphaDoseCube')), 'UniformOutput', false);
+end
 
 % interpolation if dose grid does not match ct grid
 if any(dij.ctGrid.dimensions~=dij.doseGrid.dimensions)
     myFields = fieldnames(resultGUI);
     for i = 1:numel(myFields)
+
         if numel(resultGUI.(myFields{i})) == dij.doseGrid.numOfVoxels
 
             % interpolate!
@@ -196,6 +188,7 @@ if any(dij.ctGrid.dimensions~=dij.doseGrid.dimensions)
                 dij.ctGrid.x,dij.ctGrid.y',dij.ctGrid.z,'linear',0);
 
         end
+
     end
 end
 

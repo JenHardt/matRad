@@ -96,7 +96,7 @@ if ~pln.propMC.externalCalculation
             matRad_cfg.dispWarning('Number of beams stored not the same as size of dij. Using singular weight for MC');
             dij.numOfBeams = size(dij.physicalDose{1},2);
         end
-        resultGUI    = matRad_calcCubesMC(ones(dij.numOfBeams,1),dij,1);
+        resultGUI    = matRad_calcCubes(ones(dij.numOfBeams,1),dij,1);
 
         % calc individual scenarios
     else
@@ -121,10 +121,16 @@ if ~pln.propMC.externalCalculation
         end
     end
 end
-% remember original fluence weights and histories, if applicable
-if isfield(pln.propMC,'histories')
+
+% Export histories to resultGUI
+if isfield(dij,'nbHistoriesTotal')
+    resultGUI.nbHistoriesTotal = dij.nbHistoriesTotal;
+    resultGUI.nbParticlesTotal = dij.nbParticlesTotal;
+elseif isfield(pln.propMC,'histories')
     resultGUI.historiesMC = pln.propMC.histories;
 end
+
+% remember original fluence weights
 resultGUI.w  = w;
 
 
