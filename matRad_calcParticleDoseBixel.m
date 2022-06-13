@@ -33,12 +33,7 @@ function bixel = matRad_calcParticleDoseBixel(radDepths, radialDist_sq, sigmaIni
 matRad_cfg =  MatRad_Config.instance();
 
 % initialize heterogeneity correction
-% function handle for calculating lateral dose
-Gauss    = @(x,mu,SqSigma) 1./(sqrt(2*pi.*SqSigma)).*exp(-((x - mu).^2./(2.*SqSigma)));
-
-% function handle for calculating depth doses
-sumGauss = @(x,mu,SqSigma,w) (1./sqrt(2*pi*ones(numel(x),1) .* SqSigma') .* ...
-    exp(-bsxfun(@minus,x,mu').^2 ./ (2* ones(numel(x),1) .* SqSigma' ))) * w;
+heterogeneityConfig = MatRad_HeterogeneityConfig.instance();
 
 % skip heterogeneity correction for other functions
 if nargin < 5
@@ -123,7 +118,7 @@ if isstruct(baseData.Z)
             case 'complete'
                 [~,lungDepthAtBraggPeakIx] = min(abs(radialDist_sq+(radDepths-baseData.peakPos).^2));
                 lungDepthAtBraggPeak = heteroCorrDepths(lungDepthAtBraggPeakIx);
-                ellSq = ones(numel(radDepths),1)* (baseData.Z.width'.^2 + matRad_getHeterogeneityCorrSigmaSq(lungDepthAtBraggPeak));
+                ellSq = ones(numel(radDepths),1)* (baseData.Z.width'.^2 + heterogeneityConfig.getHeterogeneityCorrSigmaSq(lungDepthAtBraggPeak));
 
             case 'depthBased'
                 % lungDepthAtGaussPeakIx = zeros(baseData.Z.mean)
@@ -132,11 +127,11 @@ if isstruct(baseData.Z)
                 end
                 lungDepthAtGaussPeak = heteroCorrDepths(lungDepthAtGaussPeakIx);
                 for i = 1:length(baseData.Z.mean)
-                    ellSq(:,i) = ones(numel(radDepths),1)* (baseData.Z.width(i)'.^2 + matRad_getHeterogeneityCorrSigmaSq(lungDepthAtGaussPeak(i)));
+                    ellSq(:,i) = ones(numel(radDepths),1)* (baseData.Z.width(i)'.^2 + heterogeneityConfig.getHeterogeneityCorrSigmaSq(lungDepthAtGaussPeak(i)));
                 end
 
             case 'voxelwise'
-                ellSq = bsxfun(@plus, baseData.Z.width'.^2, matRad_getHeterogeneityCorrSigmaSq(heteroCorrDepths));
+                ellSq = bsxfun(@plus, baseData.Z.width'.^2, heterogeneityConfig.getHeterogeneityCorrSigmaSq(heteroCorrDepths));
 
             otherwise
                 matRad_cfg.dispError('Error in heterogeneity correction')
@@ -147,7 +142,7 @@ if isstruct(baseData.Z)
     end
 
     % bixel.Z = (1./sqrt(2*pi*ellSq) .* exp(-bsxfun(@minus,baseData.Z.mean',radDepths).^2 ./ (2*ellSq)) )* baseData.Z.weight
-    bixel.Z = sumGauss(radDepths,baseData.Z.mean,ellSq',baseData.Z.weight);
+    bixel.Z = heterogeneityConfig.sumGauss(radDepths,baseData.Z.mean,ellSq',baseData.Z.weight);
 else
 
     bixel.Z = X(:,1);
@@ -170,14 +165,14 @@ if isstruct(baseData.Z) && ~isempty(heteroCorrDepths)
 
         [~,lungDepthAtBraggPeakIx] = min(abs(radialDist_sq+(radDepths-baseData.peakPos).^2));
         lungDepthAtBraggPeak = heteroCorrDepths(lungDepthAtBraggPeakIx);
-        bixel.heteroCorr.SigmaSq = matRad_getHeterogeneityCorrSigmaSq(lungDepthAtBraggPeak);
+        bixel.heteroCorr.SigmaSq = heterogeneityConfig.getHeterogeneityCorrSigmaSq(lungDepthAtBraggPeak);
 
         % define Gaussian around zero
         resolution   = min(diff(baseData.depths));
         gaussNumOfPoints = round(6*sqrt(bixel.heteroCorr.SigmaSq)/resolution);
         gaussWidth = linspace(-resolution*fix(gaussNumOfPoints/2), resolution*fix(gaussNumOfPoints/2), gaussNumOfPoints);
         %save normalize Gaussian and grids
-        bixel.heteroCorr.Gauss = Gauss(gaussWidth,0,bixel.heteroCorr.SigmaSq);
+        bixel.heteroCorr.Gauss = heterogeneityConfig.Gauss(gaussWidth,0,bixel.heteroCorr.SigmaSq);
         bixel.heteroCorr.Gauss = bixel.heteroCorr.Gauss/sum(bixel.heteroCorr.Gauss);
         bixel.heteroCorr.fineGrid = min(baseData.depths)-3*sqrt(bixel.heteroCorr.SigmaSq):resolution:max(baseData.depths)+3*sqrt(bixel.heteroCorr.SigmaSq);
         bixel.heteroCorr.coarseGrid = baseData.depths;
@@ -213,12 +208,12 @@ if isstruct(baseData.Z) && ~isempty(heteroCorrDepths)
             for i = 1:numel(tissueClasses)
                 ix = vTissueIndex == tissueClasses(i);
                 bixel.Z_Aij(ix)  = conversionFactor * baseData.LatCutOff.CompFac * ...
-                    sumGauss(radDepths(ix),baseData.alphaDose(tissueClasses(i)).mean,...
+                    heterogeneityConfig.sumGauss(radDepths(ix),baseData.alphaDose(tissueClasses(i)).mean,...
                     (baseData.alphaDose(tissueClasses(i)).width).^2 + bixel.heteroCorr.SigmaSq, ...
                     baseData.alphaDose(tissueClasses(i)).weight);
 
                 bixel.Z_Bij(ix)  = conversionFactor * baseData.LatCutOff.CompFac * ...
-                    sumGauss(radDepths(ix),baseData.SqrtBetaDose(tissueClasses(i)).mean,...
+                    heterogeneityConfig.sumGauss(radDepths(ix),baseData.SqrtBetaDose(tissueClasses(i)).mean,...
                     (baseData.SqrtBetaDose(tissueClasses(i)).width).^2 + bixel.heteroCorr.SigmaSq, ...
                     baseData.SqrtBetaDose(tissueClasses(i)).weight)';
             end

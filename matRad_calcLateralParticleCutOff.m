@@ -38,8 +38,7 @@ end
 conversionFactor = 1.6021766208e-02;
 
 % function handle for calculating depth dose for APM
-sumGauss = @(x,mu,SqSigma,w) ((1./sqrt(2*pi*ones(numel(x),1) * SqSigma') .* ...
-                              exp(-bsxfun(@minus,x,mu').^2 ./ (2* ones(numel(x),1) * SqSigma' ))) * w);
+heterogeneityConfig = MatRad_HeterogeneityConfig.instance();
                           
 if (cutOffLevel < 0 || cutOffLevel > 1)
    warning('lateral cutoff is out of range - using default cut off of 0.99') 
@@ -121,7 +120,7 @@ for energyIx = vEnergiesIx
 
     % get the current integrated depth dose profile
     if isstruct(machine.data(energyIx).Z)
-        idd_org = sumGauss(machine.data(energyIx).depths,machine.data(energyIx).Z.mean,...
+        idd_org = heterogeneityConfig.sumGauss(machine.data(energyIx).depths,machine.data(energyIx).Z.mean,...
                                    machine.data(energyIx).Z.width.^2,...
                                    machine.data(energyIx).Z.weight) * conversionFactor;
     else
@@ -146,7 +145,7 @@ for energyIx = vEnergiesIx
     depthValues       = matRad_interp1(cumIntEnergy,machine.data(energyIx).depths(ix),vEnergySteps);
 
     if isstruct(machine.data(energyIx).Z)
-        idd = sumGauss(depthValues,machine.data(energyIx).Z.mean,...
+        idd = heterogeneityConfig.sumGauss(depthValues,machine.data(energyIx).Z.mean,...
                                    machine.data(energyIx).Z.width.^2,...
                                    machine.data(energyIx).Z.weight) * conversionFactor;
     else
@@ -260,7 +259,7 @@ if visBool
     
     % obtain maximum dose
     if isstruct(machine.data(energyIx).Z)
-        idd = sumGauss(depthValues,machine.data(energyIx).Z.mean,...
+        idd = heterogeneityConfig.sumGauss(depthValues,machine.data(energyIx).Z.mean,...
                                    machine.data(energyIx).Z.width.^2,...
                                    machine.data(energyIx).Z.weight) * conversionFactor;
     else
@@ -290,7 +289,7 @@ if visBool
        
     entry = machine.data(energyIx);
     if isstruct(entry.Z)
-       idd = sumGauss(entry.depths,entry.Z.mean,entry.Z.width.^2,entry.Z.weight);
+       idd = heterogeneityConfig.sumGauss(entry.depths,entry.Z.mean,entry.Z.width.^2,entry.Z.weight);
     else
        idd = machine.data(energyIx).Z;
     end

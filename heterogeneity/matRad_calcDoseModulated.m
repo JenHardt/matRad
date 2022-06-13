@@ -5,7 +5,6 @@ matRad_cfg =  MatRad_Config.instance();
 
 pln = matRad_cfg.getDefaultProperties(pln,{'propDoseCalc','propHeterogeneity','propMC'});
 
-
 samples = pln.propHeterogeneity.sampling.numOfSamples;
 
 switch pln.propHeterogeneity.sampling.mode
@@ -39,7 +38,7 @@ end
 % if parallelComputationTOPAS
 %
 %     for i = 1:samples
-%         ct_mod{i} = matRad_modulateDensity(ct,cst,pln,Pmod,modulation);
+%         ct_mod{i} = heterogeneityConfig.modulateDensity(ct,cst,pln,Pmod,modulation);
 %     end
 %
 %     pln.propMC.proton_engine = 'TOPAS';
@@ -69,6 +68,8 @@ end
 % Turn info and warning messages off for modulation
 logLevel = matRad_cfg.logLevel;
 matRad_cfg.logLevel = 1;
+
+heterogeneityConfig = MatRad_HeterogeneityConfig.instance();
 
 switch pln.propHeterogeneity.sampling.mode
     case 'TOPAS'
@@ -109,7 +110,7 @@ std = cell(samples,1);
 
 for i = 1:samples
     fprintf([pln.propHeterogeneity.sampling.mode,': Dose calculation for CT %i/%i \n'],i,samples)
-    ct_mod = matRad_modulateDensity(ctR,cstR,pln);
+    ct_mod = heterogeneityConfig.modulateDensity(ctR,cstR,pln);
     ct_mod.sampleIdx = i;
     %%
     switch pln.propHeterogeneity.sampling.mode

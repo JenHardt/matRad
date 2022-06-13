@@ -113,7 +113,7 @@ resultGUI_homogeneous = matRad_fluenceOptimization(dij,cst,pln);
 % heterogeneity correction to the cst file, we can use the
 % cstHeteroAutoassign function. This will automatically specify lung tissue
 % with the heterogeneity flag for 'lung'.
-cst_withLungFlag = matRad_cstHeteroAutoassign(cst);
+cst_withLungFlag = heterogeneityConfig.cstHeteroAutoassign(cst);
 
 %% Calculate dose again with heterogeneityCorrection
 resultGUI_heterogeneous = matRad_calcDoseDirect(ct,stf,pln,cst_withLungFlag,resultGUI_homogeneous.w);
