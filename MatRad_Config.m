@@ -357,89 +357,97 @@ classdef MatRad_Config < handle
         end
 
         function pln = getDefaultProperties(obj,pln,fields)
-            % function to load all non-set parameters into pln struct
+            % Function to load all non-set parameters into pln struct
             standardFields = {'propHeterogeneity','propDoseCalc','propOpt','propStf'};
 
+            % Check if only one argument was given
             if ~iscell(fields)
                 fields = cellstr(fields);
             end
+
             for i = 1:length(fields)
                 currField = fields{i};
 
-                if ismember(currField,standardFields)
-                    % Get defaults for standard fields that can easily be read from set default values
-                    if ~isfield(pln,currField)
-                        pln.(currField) = struct();
-                    end
+                % Check if current field is part of a class
+                if ~(isa(pln.(fields{i}),'MatRad_HeterogeneityConfig') || ...
+                        isa(pln.(fields{i}),'MatRad_TopasConfig') || ...
+                        isa(pln.(fields{i}),'MatRad_MCsquareConfig'))
 
-                    fnames = fieldnames(obj.(currField));
-                    for f = 1:length(fnames)
-                        if contains(fnames{f},'default')
-                            cutName = [lower(fnames{f}(8)) fnames{f}(9:end)];
-                            if ~isfield(pln.(currField),cutName)
-                                pln.(currField).(cutName) = obj.(currField).(fnames{f});
-                            end
-                        else
-                            if ~isfield(pln.(currField),fnames{f})
-                                pln.(currField).(fnames{f}) = struct();
-                            end
-                            subfields = fieldnames(obj.(currField).(fnames{f}));
-                            for s = 1:length(subfields)
-                                if contains(subfields{s},'default')
-                                    if length(subfields{s})==8
-                                        cutName = [subfields{s}(8)];
-                                    else
-                                        cutName = [lower(subfields{s}(8)) subfields{s}(9:end)];
-                                    end
-                                    if ~isfield(pln.(currField).(fnames{f}),cutName)
-                                        pln.(currField).(fnames{f}).(cutName) = obj.(currField).(fnames{f}).(subfields{s});
+                    if ismember(currField,standardFields)
+                        % Get defaults for standard fields that can easily be read from set default values
+                        if ~isfield(pln,currField)
+                            pln.(currField) = struct();
+                        end
+
+                        fnames = fieldnames(obj.(currField));
+                        for f = 1:length(fnames)
+                            if contains(fnames{f},'default')
+                                cutName = [lower(fnames{f}(8)) fnames{f}(9:end)];
+                                if ~isfield(pln.(currField),cutName)
+                                    pln.(currField).(cutName) = obj.(currField).(fnames{f});
+                                end
+                            else
+                                if ~isfield(pln.(currField),fnames{f})
+                                    pln.(currField).(fnames{f}) = struct();
+                                end
+                                subfields = fieldnames(obj.(currField).(fnames{f}));
+                                for s = 1:length(subfields)
+                                    if contains(subfields{s},'default')
+                                        if length(subfields{s})==8
+                                            cutName = [subfields{s}(8)];
+                                        else
+                                            cutName = [lower(subfields{s}(8)) subfields{s}(9:end)];
+                                        end
+                                        if ~isfield(pln.(currField).(fnames{f}),cutName)
+                                            pln.(currField).(fnames{f}).(cutName) = obj.(currField).(fnames{f}).(subfields{s});
+                                        end
                                     end
                                 end
                             end
                         end
-                    end
 
-                elseif strcmp(currField,'propMC')
-                    % Get defaults for Monte Carlo
-                    % if isfield(pln,'propMC')
-                    if isfield(pln.propMC,'outputVariance')
-                        obj.dispWarning('Variance scoring for TOPAS not yet supported.');
-                    end
-
-                    if strcmp(pln.radiationMode,'protons')
-                        engines = {'TOPAS','MCsquare'};
-                        if ~isfield(pln.propMC,'engine') || ~any(strcmp(pln.propMC.engine,engines))
-                            obj.dispInfo('Using default proton MC engine "%s"\n',obj.propMC.default_proton_engine);
-                            pln.propMC.engine = obj.propMC.default_proton_engine;
+                    elseif strcmp(currField,'propMC')
+                        % Get defaults for Monte Carlo
+                        % if isfield(pln,'propMC')
+                        if isfield(pln.propMC,'outputVariance')
+                            obj.dispWarning('Variance scoring for TOPAS not yet supported.');
                         end
 
+                        if strcmp(pln.radiationMode,'protons')
+                            engines = {'TOPAS','MCsquare'};
+                            if ~isfield(pln.propMC,'engine') || ~any(strcmp(pln.propMC.engine,engines))
+                                obj.dispInfo('Using default proton MC engine "%s"\n',obj.propMC.default_proton_engine);
+                                pln.propMC.engine = obj.propMC.default_proton_engine;
+                            end
 
-                    elseif strcmp(pln.radiationMode,'carbon') || strcmp(pln.radiationMode,'helium')
-                        if ~isfield(pln.propMC,'engine')
-                            pln.propMC.engine = obj.propMC.default_carbon_engine;
+
+                        elseif strcmp(pln.radiationMode,'carbon') || strcmp(pln.radiationMode,'helium')
+                            if ~isfield(pln.propMC,'engine')
+                                pln.propMC.engine = obj.propMC.default_carbon_engine;
+                            end
+
+                        else
+                            obj.dispError('MC only implemented for protons, helium and carbon ions (only TOPAS).');
                         end
 
-                    else
-                        obj.dispError('MC only implemented for protons, helium and carbon ions (only TOPAS).');
-                    end
-
-                    switch pln.propMC.engine
-                        % number of histories per beamlet (nCasePerBixel > 1),
-                        % max stat uncertainity (0 < nCasePerBixel < 1)
-                        % set number of particles simulated per pencil beam
-                        case 'MCsquare'
-                            if ~isfield(pln.propMC,'histories') || (pln.propMC.histories==obj.propMC.MCsquare_defaultHistories)
-                                pln.propMC.histories = obj.propMC.MCsquare_defaultHistories;
-                                obj.dispInfo('Using default number of Histories per Bixel: %d\n',pln.propMC.histories);
-                            end
-                        case 'TOPAS'
-                            if ~isfield(pln.propMC,'externalCalculation')
-                                pln.propMC.externalCalculation = obj.propMC.defaultExternalCalculation;
-                            end
-                            if ~isfield(pln.propMC,'histories') || (pln.propMC.histories==obj.propMC.particles_defaultHistories)
-                                pln.propMC.histories = obj.propMC.particles_defaultHistories;
-                                obj.dispInfo('Using default number of Histories per Bixel: %d\n',pln.propMC.histories);
-                            end
+                        switch pln.propMC.engine
+                            % number of histories per beamlet (nCasePerBixel > 1),
+                            % max stat uncertainity (0 < nCasePerBixel < 1)
+                            % set number of particles simulated per pencil beam
+                            case 'MCsquare'
+                                if ~isfield(pln.propMC,'histories') || (pln.propMC.histories==obj.propMC.MCsquare_defaultHistories)
+                                    pln.propMC.histories = obj.propMC.MCsquare_defaultHistories;
+                                    obj.dispInfo('Using default number of Histories per Bixel: %d\n',pln.propMC.histories);
+                                end
+                            case 'TOPAS'
+                                if ~isfield(pln.propMC,'externalCalculation')
+                                    pln.propMC.externalCalculation = obj.propMC.defaultExternalCalculation;
+                                end
+                                if ~isfield(pln.propMC,'histories') || (pln.propMC.histories==obj.propMC.particles_defaultHistories)
+                                    pln.propMC.histories = obj.propMC.particles_defaultHistories;
+                                    obj.dispInfo('Using default number of Histories per Bixel: %d\n',pln.propMC.histories);
+                                end
+                        end
                     end
                 end
 

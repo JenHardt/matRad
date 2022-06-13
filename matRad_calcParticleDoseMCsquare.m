@@ -36,10 +36,7 @@ function dij = matRad_calcParticleDoseMCsquare(ct,stf,pln,cst,calcDoseDirect)
 % Instance of MatRad_Config class
 matRad_cfg = MatRad_Config.instance();
 
-% load default parameters in case they haven't been set yet
-pln.propMC.calcMC = true;
-pln = matRad_cfg.getDefaultProperties(pln,{'propDoseCalc','propMC'});
-
+% Handle inputs
 if nargin < 5
     calcDoseDirect = false;
 end
@@ -51,44 +48,21 @@ set(figureWait,'pointer','watch');
 
 % check if valid machine
 if ~strcmp(pln.radiationMode,'protons')
-    matRad_cfg.dispError('Wrong radiation modality . MCsquare only supports protons!');    
+    matRad_cfg.dispError('Wrong radiation modality. MCsquare only supports protons!');    
 end
 
-if isfield(pln,'propMC') && isfield(pln.propMC,'config')        
-    if isa(pln.propMC.config,'MatRad_MCsquareConfig')
-        matRad_cfg.dispInfo('Using given MCSquare Configuration in pln.propMC.config!\n');
-        MCsquareConfig = pln.propMC.config;
-    else 
-        %Create a default instance of the configuration
-        MCsquareConfig = MatRad_MCsquareConfig();
-        
-        %Overwrite parameters
-        %mc = metaclass(topasConfig); %get metaclass information to check if we can overwrite properties
-        
-        if isstruct(pln.propMC.config)
-            props = fieldnames(pln.propMC.config);
-            for fIx = 1:numel(props)
-                fName = props{fIx};
-                if isprop(MCsquareConfig,fName)
-                    %We use a try catch block to catch errors when trying
-                    %to overwrite protected/private properties instead of a
-                    %metaclass approach
-                    try 
-                        MCsquareConfig.(fName) = pln.propMC.config.(fName);
-                    catch
-                        matRad_cfg.dispWarning('Property ''%s'' for MatRad_MCsquareConfig will be omitted due to protected/private access or invalid value.',fName);
-                    end
-                else
-                    matRad_cfg.dispWarning('Unkown property ''%s'' for MatRad_MCsquareConfig will be omitted.',fName);
-                end
-            end
-        else
-            matRad_cfg.dispError('Invalid Configuration in pln.propMC.config');
-        end
-    end
+if isfield(pln,'propMC') && isa(pln.propMC,'MatRad_TopasConfig')
+    % Config found in pln
+    matRad_cfg.dispInfo('Using given Topas Configuration in pln.propMC!\n');
+    MCsquareConfig = pln.propMC;
 else
+    % Create a default instance of the configuration
     MCsquareConfig = MatRad_MCsquareConfig;
+    pln.propMC.calcMC = true;
 end
+
+% load default parameters in case they haven't been set yet
+pln = matRad_cfg.getDefaultProperties(pln,{'propDoseCalc','propMC'});
 
 env = matRad_getEnvironment();
 

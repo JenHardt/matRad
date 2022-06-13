@@ -48,46 +48,21 @@ if ~isfield(pln.propStf,'useRangeShifter')
     pln.propStf.useRangeShifter = false;
 end
 
-% set calcMC flag just in case it hasn't been set yet
-pln.propMC.calcMC = true;
+% load TOPAS config from pln or from class
+if isa(pln.propMC,'MatRad_TopasConfig')
+    % Config found in pln
+    matRad_cfg.dispInfo('Using given Topas Configuration in pln.propMC!\n');
+    topasConfig = pln.propMC;
+else
+    % Create a default instance of the configuration
+    topasConfig = MatRad_TopasConfig();
+    pln.propMC.calcMC = true;
+end
 
 % load default parameters in case they haven't been set yet
 pln = matRad_cfg.getDefaultProperties(pln,{'propDoseCalc','propMC'});
 
-% load TOPAS config from pln or from class
-if isfield(pln,'propMC') && isfield(pln.propMC,'config')
-    if isa(pln.propMC.config,'MatRad_TopasConfig')
-        matRad_cfg.dispInfo('Using given Topas Configuration in pln.propMC.config!\n');
-        topasConfig = pln.propMC.config;
-    else
-        % Create a default instance of the configuration
-        topasConfig = MatRad_TopasConfig();
 
-        % Overwrite parameters
-        % mc = metaclass(topasConfig); %get metaclass information to check if we can overwrite properties
-        if isstruct(pln.propMC.config)
-            props = fieldnames(pln.propMC.config);
-            for fIx = 1:numel(props)
-                fName = props{fIx};
-                if isprop(topasConfig,fName)
-                    % We use a try catch block to catch errors when trying to overwrite protected/private properties
-                    % instead of a metaclass approach
-                    try
-                        topasConfig.(fName) = pln.propMC.config.(fName);
-                    catch
-                        matRad_cfg.dispWarning('Property ''%s'' for MatRad_TopasConfig will be omitted due to protected/private access or invalid value.',fName);
-                    end
-                else
-                    matRad_cfg.dispWarning('Unkown property ''%s'' for MatRad_TopasConfig will be omitted.',fName);
-                end
-            end
-        else
-            matRad_cfg.dispError('Invalid Configuration in pln.propMC.config');
-        end
-    end
-else
-    topasConfig = MatRad_TopasConfig();
-end
 
 % override default parameters from external parameters if available
 if isfield(pln.propHeterogeneity,'sampling') && isfield(pln.propHeterogeneity.sampling,'histories')
@@ -102,6 +77,10 @@ if isfield(pln.propMC,'materialConverter') && isfield(pln.propMC.materialConvert
     topasConfig.materialConverter.HUToMaterial = pln.propMC.materialConverter.HUToMaterial;
 end
 
+
+
+
+
 % set nested folder structure if external calculation is turned on (this will put new simulations in subfolders)
 if pln.propMC.externalCalculation
     if isfield(pln,'patientID')
@@ -112,6 +91,8 @@ if pln.propMC.externalCalculation
         topasConfig.workingDir = [topasConfig.workingDir '_' num2str(ct.sampleIdx,'%02.f') filesep];
     end
 end
+
+
 
 %% Initialize dose grid and dij
 
