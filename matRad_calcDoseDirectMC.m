@@ -35,12 +35,14 @@ function resultGUI = matRad_calcDoseDirectMC(ct,stf,pln,cst,w)
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-global matRad_cfg;
-matRad_cfg =  MatRad_Config.instance();
-pln.propMC.calcMC = true;
-pln = matRad_cfg.loadDefaultParam(pln);
+% Instance of MatRad_Config class
+matRad_cfg = MatRad_Config.instance();
 
+pln.propMC.calcMC = true;
 calcDoseDirect = true;
+
+% load default parameters in case they haven't been set yet
+pln = matRad_cfg.getDefaultProperties(pln,{'propDoseCalc','propMC'});
 
 % check if weight vector is available, either in function call or in stf - otherwise dose calculation not possible
 if ~exist('w','var') && ~isfield([stf.ray],'weight')

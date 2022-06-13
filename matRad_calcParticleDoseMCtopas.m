@@ -52,7 +52,7 @@ end
 pln.propMC.calcMC = true;
 
 % load default parameters in case they haven't been set yet
-pln = matRad_cfg.loadDefaultParam(pln);
+pln = matRad_cfg.getDefaultProperties(pln,{'propDoseCalc','propMC'});
 
 % load TOPAS config from pln or from class
 if isfield(pln,'propMC') && isfield(pln.propMC,'config')

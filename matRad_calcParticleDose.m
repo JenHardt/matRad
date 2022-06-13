@@ -31,7 +31,8 @@ function dij = matRad_calcParticleDose(ct,stf,pln,cst,calcDoseDirect)
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-matRad_cfg =  MatRad_Config.instance();
+% Instance of MatRad_Config class
+matRad_cfg = MatRad_Config.instance();
 
 % initialize waitbar
 if matRad_cfg.logLevel > 1
@@ -42,9 +43,11 @@ end
 
 matRad_cfg.dispInfo('matRad: Particle dose calculation... \n');
 
-pln = matRad_cfg.loadDefaultParam(pln);
+% load default parameters in case they haven't been set yet
+pln = matRad_cfg.getDefaultProperties(pln,{'propDoseCalc'});
 
 if pln.propHeterogeneity.calcHetero
+    pln = matRad_cfg.getDefaultProperties(pln,{'propHeterogeneity'});
     cstOriginal = cst;
 end
 

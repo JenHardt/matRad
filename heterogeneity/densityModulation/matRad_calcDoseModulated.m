@@ -1,9 +1,9 @@
 function [resultGUI,pln] = matRad_calcDoseModulated(ct,stf,pln,cst,weights)
 
-global matRad_cfg;
+% Instance of matRad configuration class
 matRad_cfg =  MatRad_Config.instance();
 
-pln = matRad_cfg.loadDefaultParam(pln);
+pln = matRad_cfg.getDefaultProperties(pln,{'propDoseCalc','propHeterogeneity','propMC'});
 
 
 samples = pln.propHeterogeneity.sampling.numOfSamples;

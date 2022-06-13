@@ -33,7 +33,8 @@ function dij = matRad_calcPhotonDose(ct,stf,pln,cst,calcDoseDirect)
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-matRad_cfg =  MatRad_Config.instance();
+% Instance of MatRad_Config class
+matRad_cfg = MatRad_Config.instance();
 
 % initialize
 matRad_calcDoseInit;
@@ -53,7 +54,7 @@ figureWait = waitbar(0,'calculate dose influence matrix for photons...');
 set(figureWait,'pointer','watch');
 
 % load default parameters if not set
-pln = matRad_cfg.loadDefaultParam(pln);
+pln = matRad_cfg.getDefaultProperties(pln,'propDoseCalc');
 
 % set kernel cutoff value (determines how much of the kernel is used. This
 % value is separated from lateralCutOff to obtain accurate large open fields)

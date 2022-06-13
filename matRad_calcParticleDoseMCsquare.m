@@ -33,10 +33,12 @@ function dij = matRad_calcParticleDoseMCsquare(ct,stf,pln,cst,calcDoseDirect)
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-global matRad_cfg;
+% Instance of MatRad_Config class
 matRad_cfg = MatRad_Config.instance();
+
+% load default parameters in case they haven't been set yet
 pln.propMC.calcMC = true;
-pln = matRad_cfg.loadDefaultParam(pln);
+pln = matRad_cfg.getDefaultProperties(pln,{'propDoseCalc','propMC'});
 
 if nargin < 5
     calcDoseDirect = false;
@@ -141,16 +143,6 @@ end
 % Since MCsquare 1.1 only allows similar resolution in x&y, we do some
 % extra checks on that before calling calcDoseInit. First, we make sure a
 % dose grid resolution is set in the pln struct
-if ~isfield(pln,'propDoseCalc') ...
-        || ~isfield(pln.propDoseCalc,'doseGrid') ...
-        || ~isfield(pln.propDoseCalc.doseGrid,'resolution') ...
-        || ~all(isfield(pln.propDoseCalc.doseGrid.resolution,{'x','y','z'}))
-    
-    %Take default values
-    pln.propDoseCalc.doseGrid.resolution = matRad_cfg.propDoseCalc.defaultResolution;
-end
-
-% Now we check for different x/y
 if pln.propDoseCalc.doseGrid.resolution.x ~= pln.propDoseCalc.doseGrid.resolution.y
     pln.propDoseCalc.doseGrid.resolution.x = mean([pln.propDoseCalc.doseGrid.resolution.x pln.propDoseCalc.doseGrid.resolution.y]);
     pln.propDoseCalc.doseGrid.resolution.y = pln.propDoseCalc.doseGrid.resolution.x;
