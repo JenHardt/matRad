@@ -97,7 +97,7 @@ if isfield(dij,'RBE') && isscalar(dij.RBE)
         resultGUI.(['RBExD', beamInfo(i).suffix]) = resultGUI.(['physicalDose', beamInfo(i).suffix]) * dij.RBE;
     end
 elseif any(contains(fieldnames(dij),'alpha'))
-    % Load RBE models if MonteCarlo calculated for multiple models
+    % Load RBE models if MonteCarlo was calculated for multiple models
     if isfield(dij,'RBE_models')
         RBE_model = cell(1,length(dij.RBE_models)+1);
         for i = 1:length(dij.RBE_models)

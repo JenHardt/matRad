@@ -373,6 +373,86 @@ classdef MatRad_HeterogeneityConfig < handle
             % figure, histogram(ct.cube{1}(lungIdx))
         end
 
+        function resultGUI = accumulateOverSamples(~,resultGUI,resultGUI_mod,samples)
+            % Get number of beams from resultGUI_mod
+            fnames = fieldnames(resultGUI_mod);
+            fnames = fnames(contains(fnames,'beam','IgnoreCase',true));
+            fnames = cellfun(@(x) strsplit(x,'_'), fnames, 'UniformOutput', false);
+            fnames = [fnames{:,1}];
+            fnames = erase(unique(fnames(contains(fnames,'beam','IgnoreCase',true))),'beam');
+            numOfBeams = max(cellfun(@(x) str2double(x), fnames));
+
+            % get beam info
+            for i = 1:numOfBeams
+                beamInfo(i).suffix = ['_beam', num2str(i)];
+            end
+            beamInfo(numOfBeams+1).suffix = '';
+
+            % Load RBE models if MonteCarlo was calculated for multiple models
+            if any(contains(fieldnames(resultGUI_mod),'RBExD'))
+                accumulateRBE = true;
+            end
+
+            % Handle RBE models if available
+            if accumulateRBE && isfield(resultGUI_mod,'RBE_model') && ~isempty(resultGUI_mod.RBE_model)
+                RBE_model = cell(1,length(resultGUI_mod.RBE_model)+1);
+                for i = 1:length(resultGUI_mod.RBE_model)
+                    RBE_model{i+1} = ['_' resultGUI_mod.RBE_model{i}];
+                end
+            else
+                RBE_model = {''};
+            end
+
+            % Allocate empty dose fields if resultGUI is empty
+            if isempty(fieldnames(resultGUI))
+                for i = 1:length(beamInfo)
+                    resultGUI.(['physicalDose' beamInfo(1).suffix]) = zeros(size(resultGUI_mod.physicalDose));
+
+                    if accumulateRBE
+                        for j = 1:length(RBE_model)
+                            resultGUI.(['RBExD' RBE_model{j} beamInfo(1).suffix]) = zeros(size(resultGUI_mod.physicalDose));
+                        end
+                    end
+                end
+            end
+
+            % Accumulate averaged physical Dose
+            for i = 1:length(beamInfo)
+                resultGUI.(['physicalDose' beamInfo(1).suffix]) = resultGUI.(['physicalDose' beamInfo(1).suffix]) + resultGUI_mod.(['physicalDose' beamInfo(1).suffix]) / samples;
+            end
+
+            % Accumulate averaged RBE weighted Dose
+            if accumulateRBE
+                for i = 1:length(beamInfo)
+                    for j = 1:length(RBE_model)
+                        resultGUI.(['RBExD' RBE_model{j} beamInfo(1).suffix]) = resultGUI.(['RBExD' RBE_model{j} beamInfo(1).suffix]) + resultGUI_mod.(['RBExD' RBE_model{j} beamInfo(1).suffix]) / samples;
+                    end
+                end
+            end
+
+        end
+
+        function stdOut = calcSampleStd(~,dataPoints,mean)
+
+            meanDiff = 0;
+            samples = length(dataPoints);
+
+            for k = 1:samples
+                meanDiff = meanDiff + (dataPoints{k} - mean).^2;
+            end
+            varMean = meanDiff./(samples - 1)./samples;
+            stdMean = sqrt(varMean);
+
+            stdSum = stdMean * samples;
+            varSum = stdSum.^2;
+
+            stdOut = sqrt(varSum);
+
+        end
+
+
+
+        
     end
 
     methods (Access = private)

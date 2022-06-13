@@ -139,7 +139,7 @@ classdef MatRad_TopasConfig < handle
 
     methods
         function obj = MatRad_TopasConfig()
-            %MatRad_MCsquareConfig Construct configuration Class for TOPAS
+            % MatRad_TopasConfig Construct configuration Class for TOPAS
             %   Default execution paths are set here
 
             obj.thisFolder = fileparts(mfilename('fullpath'));
@@ -433,8 +433,13 @@ classdef MatRad_TopasConfig < handle
         end
 
         function resultGUI = postprocessing(~,dij)
-
+% 
             resultGUI = matRad_calcCubes(ones(dij.numOfBeams,1),dij,1);
+
+            % Export RBE model if filled
+            if isfield(resultGUI,'RBE_model') && ~isempty(resultGUI.RBE_model)
+                resultGUI.RBE_model = dij.RBE_model;
+            end
 
             % Export histories to resultGUI
             if isfield(dij,'nbHistoriesTotal')
@@ -452,7 +457,8 @@ classdef MatRad_TopasConfig < handle
         end
 
         function resultGUI = readExternal(obj,folder)
-            % function to read out complete TOPAS simulation from single folder
+            % function to read out complete TOPAS simulation from single folder or multiple folders
+            % in case of heterogeneity modulation
             %
             % call
             %   topasCube = topasConfig.readExternal(folder)
@@ -480,13 +486,56 @@ classdef MatRad_TopasConfig < handle
             %
             % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-            % read in TOPAS files in dij
-            dij = obj.readFiles(folder);
+            % Process input folder(s)
+            if contains(folder,'*')% && all(modulation ~= false)
+                folder = dir(folder);
+                for i = 1:length(folder)
+                    if any(isstrprop(folder(i).name(end-4:end),'digit'))
+                        folders{i} = [folder(i).folder filesep folder(i).name];
+                    end
+                end
+            else
+                folders{1} = folder;
+            end
+            folders = folders(~cellfun('isempty',folders));
+            numOfSamples = length(folders);
 
-            %% Postprocessing
-            resultGUI = obj.postprocessing(dij);
+            % Allocate empty resultGUI and space for individual physical doses to calculate their standard deviation
+            resultGUI = struct;
+            data = cell(numOfSamples,1);
 
-            % Implement averaging of sampling in new Heterogeneity Class!
+            % Instance of heterogeneity correction class in case of sampling
+            if numOfSamples > 1
+                heterogeneityConfig = MatRad_HeterogeneityConfig.instance();
+            end
+
+            for f = 1:numOfSamples
+                % read in TOPAS files in dij
+                dij = obj.readFiles(folder);
+
+                % Postprocessing
+                resultGUI_mod = obj.postprocessing(dij);
+
+                if numOfSamples > 1
+                    % Save individual standard deviation
+                    if isfield(resultGUI_mod,'physicalDose_std')
+                        resultGUI.physicalDose_std_individual{i} = resultGUI_mod.physicalDose_std;
+                    end
+
+                    % Save individual physical doses to calculate standard deviation
+                    data{i} = resultGUI_mod.physicalDose;
+
+                    % Accumulate averaged results
+                    resultGUI = heterogeneityConfig.accumulateOverSamples(resultGUI,resultGUI_mod,samples);
+                else
+                    resultGUI = resultGUI_mod;
+                end
+            end
+
+            if numOfSamples > 1
+                % Calculate standard deviation between samples
+                resultGUI.physicalDose_std = heterogeneityConfig.calcSampleStd(data,resultGUI.physicalDose);
+            end
 
             % Set 0 for empty fields
             resultGUI = obj.markFieldsAsEmpty(resultGUI);
