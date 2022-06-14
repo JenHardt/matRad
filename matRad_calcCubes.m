@@ -37,20 +37,12 @@ end
 resultGUI.w = w;
 
 % get bixel - beam correspondence
-if all(w == 1)
-    for i = 1:dij.numOfBeams
-        beamInfo(i).suffix = ['_beam', num2str(i)];
-        beamInfo(i).logIx  = ([1:dij.numOfBeams]' == i);
-    end
-    resultGUI.w = ones(dij.numOfBeams,1);
-else
-    for i = 1:dij.numOfBeams
-        beamInfo(i).suffix = ['_beam', num2str(i)];
-        beamInfo(i).logIx  = (dij.beamNum == i);
-    end
+for i = 1:dij.numOfBeams
+    beamInfo(i).suffix = ['_beam', num2str(i)];
+    beamInfo(i).logIx  = (dij.beamNum == i);
 end
 beamInfo(dij.numOfBeams+1).suffix = '';
-beamInfo(dij.numOfBeams+1).logIx  = true(size(resultGUI.w));
+beamInfo(dij.numOfBeams+1).logIx  = true(size(resultGUI.w,1),1);
 
 
 %% Physical Dose
@@ -96,7 +88,7 @@ if isfield(dij,'RBE') && isscalar(dij.RBE)
     for i = 1:length(beamInfo)
         resultGUI.(['RBExD', beamInfo(i).suffix]) = resultGUI.(['physicalDose', beamInfo(i).suffix]) * dij.RBE;
     end
-elseif any(contains(fieldnames(dij),'alpha'))
+elseif any(contains(fieldnames(dij),'alpha','IgnoreCase',true))
     % Load RBE models if MonteCarlo was calculated for multiple models
     if isfield(dij,'RBE_models')
         RBE_model = cell(1,length(dij.RBE_models)+1);
@@ -154,7 +146,7 @@ if isfield(dij,'MC_tallies')
     for f = 1:numel(dij.MC_tallies)
         tally = dij.MC_tallies{f};
         % skip tallies processed above
-        if ~isfield(resultGUI,tally) && ~contains(tally,'std')
+        if ~isfield(resultGUI,tally) && ~contains(tally,'std','IgnoreCase',true)
             tallyCut = strsplit(tally,'_');
             if size(tallyCut,2) > 1
                 beamNum = str2num(cell2mat(regexp(tally,'\d','Match')));
@@ -167,10 +159,10 @@ if isfield(dij,'MC_tallies')
 end
 
 % Remove suffix for RBExD if there's only one available
-if any(contains(fieldnames(dij),'alpha')) && isfield(dij,'RBE_models') && length(dij.RBE_models) == 1
+if any(contains(fieldnames(dij),'alpha','IgnoreCase',true)) && isfield(dij,'RBE_models') && length(dij.RBE_models) == 1
     % Get fieldnames that include the specified RBE model
     fnames = fieldnames(resultGUI);
-    fnames = fnames(contains(fnames,dij.RBE_models{1}));
+    fnames = fnames(contains(fnames,dij.RBE_models{1},"IgnoreCase",true));
 
     % Rename fields and remove model specifier if there's only one
     for f = 1:length(fnames)
