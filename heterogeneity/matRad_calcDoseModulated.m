@@ -7,10 +7,12 @@ matRad_cfg =  MatRad_Config.instance();
 if isfield(pln,'propMC')
     pln = matRad_cfg.getDefaultClass(pln,'propMC');
 end
+matRad_cfg.getDefaultClass(pln,'propHeterogeneity');
+
 % load default parameters in case they haven't been set yet
 pln = matRad_cfg.getDefaultProperties(pln,'propDoseCalc');
 
-samples = pln.propHeterogeneity.sampling.numOfSamples;
+samples = pln.propHeterogeneity.sampling_numOfSamples;
 
 switch pln.propHeterogeneity.sampling.mode
     case 'TOPAS'
@@ -43,7 +45,7 @@ end
 % if parallelComputationTOPAS
 %
 %     for i = 1:samples
-%         ct_mod{i} = heterogeneityConfig.modulateDensity(ct,cst,pln,Pmod,modulation);
+%         ct_mod{i} = pln.propHeterogeneity.modulateDensity(ct,cst,pln,Pmod,modulation);
 %     end
 %
 %     pln.propMC.proton_engine = 'TOPAS';
@@ -74,9 +76,6 @@ end
 logLevel = matRad_cfg.logLevel;
 matRad_cfg.logLevel = 1;
 
-% Instance of HeterogeneityCorrection configuration class
-heterogeneityConfig = MatRad_HeterogeneityConfig.instance();
-
 % Perform resampling to dose grid if necessary (modulation is performed on the resampled grid)
 switch pln.propHeterogeneity.sampling.mode
     case 'TOPAS'
@@ -105,7 +104,7 @@ for i = 1:samples
     matRad_cfg.dispInfo([pln.propHeterogeneity.sampling.mode,': Dose calculation for CT ' num2str(i) '/' num2str(samples)])
 
     % Modulate density of ct cube
-    ct_mod = heterogeneityConfig.modulateDensity(ctR,cstR,pln);
+    ct_mod = pln.propHeterogeneity.modulateDensity(ctR,cstR,pln);
 
     % Save number of samples in modulated CT (e.g. used for TOPAS folder generation)
     ct_mod.sampleIdx = i;
@@ -123,7 +122,7 @@ for i = 1:samples
 
             if ~calcExternal
                 % Accumulate averaged results
-                resultGUI = heterogeneityConfig.accumulateOverSamples(resultGUI,resultGUI_mod,samples);
+                resultGUI = pln.propHeterogeneity.accumulateOverSamples(resultGUI,resultGUI_mod,samples);
 
                 % Save individual standard deviation
                 if isfield(resultGUI_mod,'physicalDose_std')
@@ -135,7 +134,7 @@ for i = 1:samples
             resultGUI_mod = matRad_calcDoseDirect(ct_mod,stf,pln,cstR,weights);
 
             % Accumulate averaged results
-            resultGUI = heterogeneityConfig.accumulateOverSamples(resultGUI,resultGUI_mod,samples);
+            resultGUI = pln.propHeterogeneity.accumulateOverSamples(resultGUI,resultGUI_mod,samples);
     end
 
     % Save individual physical doses to calculate standard deviation
@@ -147,7 +146,7 @@ end
 
 if ~calcExternal
     % Calculate standard deviation between samples
-    resultGUI.physicalDose_std = heterogeneityConfig.calcSampleStd(data,resultGUI.physicalDose);
+    resultGUI.physicalDose_std = pln.propHeterogeneity.calcSampleStd(data,resultGUI.physicalDose);
 end
 
 % Change loglevel back to default;

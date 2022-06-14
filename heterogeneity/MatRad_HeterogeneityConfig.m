@@ -21,6 +21,27 @@ classdef MatRad_HeterogeneityConfig < handle
         % Instance of matRad configuration class
         matRad_cfg = MatRad_Config.instance();
 
+        % Heterogeneity correction can be turned off with setting this flag to 'false'
+        calcHetero = true;
+
+        useOriginalDepths = true;
+
+        modulateLET = true;
+        modulateBioDose = true;
+
+        modPower = 800;
+
+        useDoseCurves = true;
+
+        type = 'complete';  % 'complete','depthBased','voxelwise'
+        
+        % Property struct for sampling
+        sampling = struct('mode','matRad', ...
+            'method','binomial',...  % 'binomial','poisson'
+            ...%         'numOfHistories',1e6,...
+            'numOfSamples',20,...
+            'continuous',true);
+
         % Function handle for calculating lateral dose
         Gauss    = @(x,mu,SqSigma) 1./(sqrt(2*pi.*SqSigma)).*exp(-((x - mu).^2./(2.*SqSigma)));
 
@@ -82,7 +103,8 @@ classdef MatRad_HeterogeneityConfig < handle
                 % Pmod = 256; % [µm]
 
                 % worst case modulation power
-                Pmod = 800; % [µm]
+                % modPower set in heterogeneityClass
+                Pmod = obj.modPower; % [µm]
             end
 
             % output used modulation power to console
@@ -449,10 +471,6 @@ classdef MatRad_HeterogeneityConfig < handle
             stdOut = sqrt(varSum);
 
         end
-
-
-
-        
     end
 
     methods (Access = private)
@@ -489,23 +507,6 @@ classdef MatRad_HeterogeneityConfig < handle
             DensMod = load(['DensMod_',num2str(Pmod),'mu_0,2603_rho_1,5mm_pixelsize.txt']);
             DensMod(:,2) = DensMod(:,2) / sum(DensMod(:,2));
 
-        end
-
-    end
-    methods(Static)
-
-        function obj = instance()
-            %instance creates a singleton instance of MatRad_Config
-            %  In MatRad_Config, the constructor is private to make sure only on global instance exists.
-            %  Call this static functino to get or create an instance of the matRad configuration class
-            persistent uniqueInstance;
-
-            if isempty(uniqueInstance)
-                obj = MatRad_HeterogeneityConfig();
-                uniqueInstance = obj;
-            else
-                obj = uniqueInstance;
-            end
         end
     end
 end

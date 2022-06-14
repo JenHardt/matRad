@@ -51,13 +51,8 @@ pln = matRad_cfg.getDefaultClass(pln,'propMC');
 
 
 % override default parameters from external parameters if available
-if isfield(pln.propHeterogeneity,'sampling') && isfield(pln.propHeterogeneity.sampling,'histories')
-    topasConfig.numHistories = pln.propHeterogeneity.sampling.histories;
-else
-    topasConfig.numHistories = pln.propMC.histories;
-end
-if isfield(pln.propMC,'numOfRuns')
-    topasConfig.numOfRuns = pln.propMC.numOfRuns;
+if isfield(pln,'propHeterogeneity') && isfield(pln.propHeterogeneity,'sampling') && isfield(pln.propHeterogeneity.sampling,'numHistories')
+    pln.propMC.numHistories = pln.propHeterogeneity.sampling.numHistories;
 end
 if isfield(pln.propMC,'materialConverter') && isfield(pln.propMC.materialConverter,'HUToMaterial')
     topasConfig.materialConverter.HUToMaterial = pln.propMC.materialConverter.HUToMaterial;

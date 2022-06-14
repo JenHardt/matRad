@@ -34,7 +34,7 @@ function bixel = matRad_calcParticleDoseBixel(radDepths, radialDist_sq, sigmaIni
 matRad_cfg = MatRad_Config.instance();
 
 % initialize heterogeneity correction
-heterogeneityConfig = MatRad_HeterogeneityConfig.instance();
+heterogeneityConfig = MatRad_HeterogeneityConfig();
 
 % skip heterogeneity correction for other functions
 if nargin < 5

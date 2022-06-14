@@ -500,7 +500,8 @@ classdef MatRad_TopasConfig < handle
 
             % Instance of heterogeneity correction class in case of sampling
             if numOfSamples > 1
-                heterogeneityConfig = MatRad_HeterogeneityConfig.instance();
+                heterogeneityConfig = MatRad_HeterogeneityConfig();
+            end
             end
 
             for f = 1:numOfSamples
