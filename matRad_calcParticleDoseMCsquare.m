@@ -51,18 +51,11 @@ if ~strcmp(pln.radiationMode,'protons')
     matRad_cfg.dispError('Wrong radiation modality. MCsquare only supports protons!');    
 end
 
-if isfield(pln,'propMC') && isa(pln.propMC,'MatRad_TopasConfig')
-    % Config found in pln
-    matRad_cfg.dispInfo('Using given Topas Configuration in pln.propMC!\n');
-    MCsquareConfig = pln.propMC;
-else
-    % Create a default instance of the configuration
-    MCsquareConfig = MatRad_MCsquareConfig;
-    pln.propMC.calcMC = true;
-end
+% Load class variables in pln
+pln = matRad_cfg.getDefaultClass(pln,'propMC');
 
 % load default parameters in case they haven't been set yet
-pln = matRad_cfg.getDefaultProperties(pln,{'propDoseCalc','propMC'});
+pln = matRad_cfg.getDefaultProperties(pln,'propDoseCalc');
 
 env = matRad_getEnvironment();
 
@@ -206,7 +199,7 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                 MCsquareConfig.CT_File       = 'MC2patientCT.mhd';
                 MCsquareConfig.Num_Threads   = nbThreads;
                 MCsquareConfig.RNG_Seed      = 1234;
-                MCsquareConfig.Num_Primaries = pln.propMC.histories;
+                MCsquareConfig.Num_Primaries = pln.propMC.numHistories;
                 
 
                 % turn simulation of individual beamlets

@@ -64,11 +64,11 @@ pln.propOpt.runSequencing = 0;
 
 % Monte Carlo settings
 if testing
-    pln.propMC.histories = 1e4;
+    pln.propMC.numHistories = 1e4;
     pln.propMC.numOfRuns = 1;
     pln.propMC.externalCalculation = false;
 else
-    pln.propMC.histories = 1e8;
+    pln.propMC.numHistories = 1e8;
     pln.propMC.numOfRuns = 5;
     pln.propMC.externalCalculation = true;
 end

@@ -67,7 +67,7 @@ pln.propMC.engine = 'MCsquare';
 % pln.propMC.engine = 'TOPAS';
 
 % set number of histories lower than default for this example (default: 1e8)
-pln.propMC.histories = 1e5;
+pln.propMC.numHistories = 1e5;
 
 %Enable/Disable use of range shifter (has effect only when we need to fill 
 %up the low-range region)

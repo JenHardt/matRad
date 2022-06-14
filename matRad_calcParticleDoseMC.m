@@ -35,31 +35,20 @@ function dij = matRad_calcParticleDoseMC(ct,stf,pln,cst,calcDoseDirect)
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% Instance of MatRad_Config class
 matRad_cfg = MatRad_Config.instance();
 
 if nargin < 6
     calcDoseDirect = false;
 end
 
-if ~isfield(pln,'propMC') || ~isfield(pln.propMC,'engine')
-    matRad_cfg.dispInfo('Using default proton MC engine "%s"\n',matRad_cfg.propMC.default_proton_engine);
-    engine = matRad_cfg.propMC.default_proton_engine;
-else
-    engine = pln.propMC.engine;
-end
+% load appropriate config from pln or from class
+pln = matRad_cfg.getDefaultClass(pln,'propMC');
 
+% load default parameters in case they haven't been set yet
+pln = matRad_cfg.getDefaultProperties(pln,'propDoseCalc');
 
-if ~isfield(pln,'propMC') || ~isfield(pln.propMC,'histories')
-    if ~calcDoseDirect
-        pln.propMC.histories = matRad_cfg.propMC.particles_defaultHistories;
-        matRad_cfg.dispInfo('Using default number of Histories per bixel: %d\n',pln.propMC.histories);
-    else
-        pln.propMC.histories = matRad_cfg.propMC.direct_defaultHistories;
-        matRad_cfg.dispInfo('Using default number of Histories for forward dose calculation: %d\n',pln.propMC.histories);
-    end
-end
-
-switch engine
+switch pln.propMC.engine
     case 'MCsquare'
         dij = matRad_calcParticleDoseMCsquare(ct,stf,pln,cst,calcDoseDirect);
     case 'TOPAS'

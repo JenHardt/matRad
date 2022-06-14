@@ -38,11 +38,13 @@ function resultGUI = matRad_calcDoseDirectMC(ct,stf,pln,cst,w)
 % Instance of MatRad_Config class
 matRad_cfg = MatRad_Config.instance();
 
-pln.propMC.calcMC = true;
 calcDoseDirect = true;
 
+% load appropriate config from pln or from class
+pln = matRad_cfg.getDefaultClass(pln,'propMC');
+
 % load default parameters in case they haven't been set yet
-pln = matRad_cfg.getDefaultProperties(pln,{'propDoseCalc','propMC'});
+pln = matRad_cfg.getDefaultProperties(pln,'propDoseCalc');
 
 % check if weight vector is available, either in function call or in stf - otherwise dose calculation not possible
 if ~exist('w','var') && ~isfield([stf.ray],'weight')
@@ -126,7 +128,7 @@ end
 if isfield(dij,'nbHistoriesTotal')
     resultGUI.nbHistoriesTotal = dij.nbHistoriesTotal;
     resultGUI.nbParticlesTotal = dij.nbParticlesTotal;
-elseif isfield(pln.propMC,'histories')
+elseif isfield(pln.propMC,'numHistories')
     resultGUI.historiesMC = pln.propMC.histories;
 end
 

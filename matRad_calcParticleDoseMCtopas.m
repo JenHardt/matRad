@@ -40,27 +40,13 @@ matRad_cfg = MatRad_Config.instance();
 if nargin < 5
     calcDoseDirect = false;
 end
-if ~calcDoseDirect
-    matRad_cfg.dispWarning('You have selected TOPAS dij calculation, this may take a while ^^');
-    pln.propMC.calcDij = true;
-end
+
 if ~isfield(pln.propStf,'useRangeShifter')
     pln.propStf.useRangeShifter = false;
 end
 
-% load TOPAS config from pln or from class
-if isa(pln.propMC,'MatRad_TopasConfig')
-    % Config found in pln
-    matRad_cfg.dispInfo('Using given Topas Configuration in pln.propMC!\n');
-    topasConfig = pln.propMC;
-else
-    % Create a default instance of the configuration
-    topasConfig = MatRad_TopasConfig();
-    pln.propMC.calcMC = true;
-end
-
-% load default parameters in case they haven't been set yet
-pln = matRad_cfg.getDefaultProperties(pln,{'propDoseCalc','propMC'});
+% Load class variables in pln
+pln = matRad_cfg.getDefaultClass(pln,'propMC');
 
 
 
@@ -100,7 +86,7 @@ end
 matRad_calcDoseInit;
 
 % for TOPAS we explicitly downsample the ct to the dose grid (might not be necessary in future versions with separated grids)
-[ctR,~,~] = topasConfig.resampleGrid(ct,cst,pln,stf);
+[ctR,~,~] = pln.propMC.resampleGrid(ct,cst,pln,stf);
 
 % overwrite CT grid in dij in case of modulation.
 if isfield(ctR,'ctGrid')
@@ -113,7 +99,7 @@ end
 load([pln.radiationMode,'_',pln.machine],'machine');
 machine.data = matRad_overrideBaseData(machine.data);
 
-%  Collect weights
+% Collect given weights
 if calcDoseDirect
     w = zeros(sum([stf(:).totalNumOfBixels]),ctR.numOfCtScen);
     counter = 1;
@@ -128,7 +114,7 @@ end
 
 % Get photon parameters for RBExD calculation
 if isfield(pln,'bioParam') && strcmp(pln.bioParam.quantityOpt,'RBExD')
-    topasConfig.scorer.RBE = true;
+    pln.propMC.scorer.RBE = true;
     [dij.ax,dij.bx] = matRad_getPhotonLQMParameters(cst,dij.doseGrid.numOfVoxels,1,VdoseGrid);
     dij.abx(dij.bx>0) = dij.ax(dij.bx>0)./dij.bx(dij.bx>0);
 end
@@ -149,38 +135,38 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
             if pln.multScen.scenMask(ctScen,shiftScen,rangeShiftScen)
 
                 % Delete previous topas files so there is no mix-up
-                files = dir([topasConfig.workingDir,'*']);
+                files = dir([pln.propMC.workingDir,'*']);
                 files = {files(~[files.isdir]).name};
                 fclose('all');
                 for i = 1:length(files)
-                    delete([topasConfig.workingDir,files{i}])
+                    delete([pln.propMC.workingDir,files{i}])
                 end
 
                 % actually write TOPAS files
                 if calcDoseDirect
-                    topasConfig.writeAllFiles(ctR,cst,pln,stf,machine,w(:,ctScen));
+                    pln.propMC.writeAllFiles(ctR,cst,pln,stf,machine,w(:,ctScen));
                 else
-                    topasConfig.writeAllFiles(ctR,cst,pln,stf,machine);
+                    pln.propMC.writeAllFiles(ctR,cst,pln,stf,machine);
                 end
 
                 % change director back to original directory
-                cd(topasConfig.workingDir);
+                cd(pln.propMC.workingDir);
 
                 % save dij and weights, they are needed for later reading the data back in
                 if pln.propMC.externalCalculation
                     matRad_cfg.dispInfo('TOPAS simulation skipped for external calculation\n');
                 else
                     for beamIx = 1:numel(stf)
-                        for runIx = 1:topasConfig.numOfRuns
-                            fname = sprintf('%s_field%d_run%d',topasConfig.label,beamIx,runIx);
+                        for runIx = 1:pln.propMC.numOfRuns
+                            fname = sprintf('%s_field%d_run%d',pln.propMC.label,beamIx,runIx);
                             if isfield(pln.propMC,'verbosity') && strcmp(pln.propMC.verbosity,'full')
-                                topasCall = sprintf('%s %s.txt',topasConfig.topasExecCommand,fname);
+                                topasCall = sprintf('%s %s.txt',pln.propMC.topasExecCommand,fname);
                             else
-                                topasCall = sprintf('%s %s.txt > %s.out > %s.log',topasConfig.topasExecCommand,fname,fname,fname);
+                                topasCall = sprintf('%s %s.txt > %s.out > %s.log',pln.propMC.topasExecCommand,fname,fname,fname);
                             end
 
                             % initiate parallel runs and delete previous files
-                            if topasConfig.parallelRuns
+                            if pln.propMC.parallelRuns
                                 finishedFiles{runIx} = sprintf('%s.finished',fname);
                                 topasCall = [topasCall '; touch ' finishedFiles{runIx} ' &'];
                             end
@@ -203,7 +189,7 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                         end
 
                         % wait for parallel runs to finish and process
-                        if topasConfig.parallelRuns
+                        if pln.propMC.parallelRuns
                             runsFinished = false;
                             pause('on');
                             while ~runsFinished

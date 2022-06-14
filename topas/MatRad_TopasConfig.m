@@ -188,12 +188,6 @@ classdef MatRad_TopasConfig < handle
             if isfield(pln,'prescribedDose')
                 obj.bioParam.PrescribedDose = pln.prescribedDose;
             end
-            if isfield(pln.propMC,'scorer')
-                fnames = fieldnames(pln.propMC.scorer);
-                for f = 1:length(fnames)
-                    obj.scorer.(fnames{f}) = pln.propMC.scorer.(fnames{f});
-                end
-            end
             if isempty(obj.radiationMode)
                 obj.radiationMode = machine.meta.radiationMode;
             end

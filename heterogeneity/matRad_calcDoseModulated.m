@@ -3,8 +3,12 @@ function [resultGUI,pln] = matRad_calcDoseModulated(ct,stf,pln,cst,weights)
 % Instance of matRad configuration class
 matRad_cfg =  MatRad_Config.instance();
 
+% load appropriate configs from pln or from class
+if isfield(pln,'propMC')
+    pln = matRad_cfg.getDefaultClass(pln,'propMC');
+end
 % load default parameters in case they haven't been set yet
-pln = matRad_cfg.getDefaultProperties(pln,{'propDoseCalc','propHeterogeneity','propMC'});
+pln = matRad_cfg.getDefaultProperties(pln,'propDoseCalc');
 
 samples = pln.propHeterogeneity.sampling.numOfSamples;
 
@@ -21,11 +25,11 @@ switch pln.propHeterogeneity.sampling.mode
             end
         end
 
-        histories = pln.propMC.histories;
+        numHistories = pln.propMC.numHistories;
         calcExternal = pln.propMC.externalCalculation;
     case 'MCsquare'
         calcExternal = false;
-        histories = pln.propMC.histories;
+        numHistories = pln.propMC.numHistories;
         if ~isfield(pln.propMC,'materialConverter') || ~isfield(pln.propMC.materialConverter,'addSection')
             pln.propMC.materialConverter.addSection = 'sampledDensities';
         end
@@ -112,7 +116,7 @@ for i = 1:samples
         case {'TOPAS','MCsquare'}
             % Set TOPAS parameters
             pln.propMC.numOfRuns = 1;
-            pln.propHeterogeneity.sampling.histories = histories/samples;
+            pln.propHeterogeneity.sampling.numHistories = numHistories/samples;
 
             % Calculate dose with modulated CT
             resultGUI_mod = matRad_calcDoseDirectMC(ct_mod,stfR,pln,cstR,weights);
