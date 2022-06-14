@@ -48,32 +48,31 @@ end
 % Load class variables in pln
 pln = matRad_cfg.getDefaultClass(pln,'propMC');
 
+% Set parameters for full Dij calculation
+if ~calcDoseDirect
+    matRad_cfg.dispWarning('You have selected TOPAS dij calculation, this may take a while ^^');
+    pln.propMC.scorer.calcDij = true;
+    pln.propMC.numOfRuns = 1;
+end
 
+% load default parameters for doseCalc in case they haven't been set yet
+pln = matRad_cfg.getDefaultProperties(pln,{'propDoseCalc'});
 
 % override default parameters from external parameters if available
 if isfield(pln,'propHeterogeneity') && isfield(pln.propHeterogeneity,'sampling') && isfield(pln.propHeterogeneity.sampling,'numHistories')
     pln.propMC.numHistories = pln.propHeterogeneity.sampling.numHistories;
 end
-if isfield(pln.propMC,'materialConverter') && isfield(pln.propMC.materialConverter,'HUToMaterial')
-    topasConfig.materialConverter.HUToMaterial = pln.propMC.materialConverter.HUToMaterial;
-end
-
-
-
-
 
 % set nested folder structure if external calculation is turned on (this will put new simulations in subfolders)
 if pln.propMC.externalCalculation
     if isfield(pln,'patientID')
-        topasConfig.workingDir = [topasConfig.workingDir pln.radiationMode filesep pln.patientID filesep pln.patientID '_'];
+        pln.propMC.workingDir = [pln.propMC.workingDir pln.radiationMode filesep pln.patientID filesep pln.patientID '_'];
     end
-    topasConfig.workingDir = [topasConfig.workingDir pln.radiationMode,'_',pln.machine,'_',datestr(now, 'dd-mm-yy')];
+    pln.propMC.workingDir = [pln.propMC.workingDir pln.radiationMode,'_',pln.machine,'_',datestr(now, 'dd-mm-yy')];
     if isfield(ct,'sampleIdx')
-        topasConfig.workingDir = [topasConfig.workingDir '_' num2str(ct.sampleIdx,'%02.f') filesep];
+        pln.propMC.workingDir = [pln.propMC.workingDir '_' num2str(ct.sampleIdx,'%02.f') filesep];
     end
 end
-
-
 
 %% Initialize dose grid and dij
 
@@ -208,10 +207,11 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
 end
 
 %% Simulation(s) finished - read out volume scorers from topas simulation
-if calcDoseDirect
-    topasCubes = topasConfig.readFiles(topasConfig.workingDir);
+% Skip readout if external files were generated
+if ~pln.propMC.externalCalculation
+    topasCubes = pln.propMC.readFiles(pln.propMC.workingDir);
 else
-    topasCubes = topasConfig.readFiles(topasConfig.workingDir,dij);
+    topasCubes = [];
 end
 
 % manipulate isocenter back
