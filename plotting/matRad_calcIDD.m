@@ -41,20 +41,20 @@ switch direction
         if ~calcProfile
             IDD = sum(sum(doseCube,2),3);
         else
-            IDD = doseCube(:,size(doseCube,2)/2,size(doseCube,3)/2);
+            IDD = doseCube(:,round(size(doseCube,2)/2),round(size(doseCube,3)/2));
         end
     case 'x'
         if ~calcProfile
             IDD = sum(sum(doseCube,1),3);
         else
-            IDD = doseCube(size(doseCube,1)/2,:,size(doseCube,3)/2);    
+            IDD = doseCube(round(size(doseCube,1)/2),:,round(size(doseCube,3)/2));    
         end
         IDD = permute(IDD,[2,3,1]);
     case 'z'
         if ~calcProfile
             IDD = sum(sum(doseCube,2),1);
         else
-            IDD = doseCube(size(doseCube,1)/2,size(doseCube,2)/2,:);    
+            IDD = doseCube(round(size(doseCube,1)/2),round(size(doseCube,2)/2),:);    
         end
         IDD = permute(IDD,[3,1,2]);
     otherwise
