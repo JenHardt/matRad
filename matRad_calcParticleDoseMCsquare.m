@@ -52,7 +52,9 @@ if ~strcmp(pln.radiationMode,'protons')
 end
 
 % Load class variables in pln
-pln = matRad_cfg.getDefaultClass(pln,'propMC');
+if ~calcDoseDirect
+    pln = matRad_cfg.getDefaultClass(pln,'propMC');
+end
 
 % load default parameters in case they haven't been set yet
 pln = matRad_cfg.getDefaultProperties(pln,'propDoseCalc');

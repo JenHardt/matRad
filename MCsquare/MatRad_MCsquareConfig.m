@@ -20,7 +20,9 @@ classdef MatRad_MCsquareConfig
 
     
     properties       
-        
+        %%% Parameter for continuity
+        engine = 'MCsquare';
+
         %%% Simulation parameters:
         Num_Threads   =	0;		% Number of parallel calculation threads. Default: 0 = max available threads
         RNG_Seed      =	0;		% Seed for the random number generator (deterministic result only with single thread). Default: 0 = seed based on the time

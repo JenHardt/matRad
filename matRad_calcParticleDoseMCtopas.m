@@ -45,14 +45,14 @@ if ~isfield(pln.propStf,'useRangeShifter')
     pln.propStf.useRangeShifter = false;
 end
 
-% Load class variables in pln
-pln = matRad_cfg.getDefaultClass(pln,'propMC');
-
 % Set parameters for full Dij calculation
 if ~calcDoseDirect
     matRad_cfg.dispWarning('You have selected TOPAS dij calculation, this may take a while ^^');
     pln.propMC.scorer.calcDij = true;
     pln.propMC.numOfRuns = 1;
+
+    % Load class variables in pln
+    pln = matRad_cfg.getDefaultClass(pln,'propMC');
 end
 
 % load default parameters for doseCalc in case they haven't been set yet

@@ -26,6 +26,8 @@ classdef MatRad_TopasConfig < handle
 
         workingDir; %working directory for the simulation
 
+        engine = 'TOPAS'; %parameter for continuity
+        
         label = 'matRad_plan';
 
         %Simulation parameters
@@ -1284,7 +1286,7 @@ classdef MatRad_TopasConfig < handle
                             if obj.scorer.calcDij
                                 % write particles directly to every beamlet for dij calculation (each bixel
                                 % calculated separately with full numParticles
-                                dataTOPAS(cutNumOfBixel).current = uint32(obj.fracHistories* nCurrentParticles / obj.numOfRuns);
+                                dataTOPAS(cutNumOfBixel).current = uint32(nCurrentParticles / obj.numOfRuns);
                             else
                                 dataTOPAS(cutNumOfBixel).current = uint32(obj.fracHistories*nCurrentParticles / obj.numOfRuns);
                             end
@@ -1351,7 +1353,7 @@ classdef MatRad_TopasConfig < handle
                 dataTOPAS(idx) = [];
                 cutNumOfBixel = length(dataTOPAS(:));
                 if obj.scorer.calcDij
-                    historyCount(beamIx) = uint32(obj.fracHistories * nBeamParticlesTotal(beamIx) / obj.numOfRuns);
+                    historyCount(beamIx) = uint32(nBeamParticlesTotal(beamIx) / obj.numOfRuns);
                 else
                     historyCount(beamIx) = uint32(obj.fracHistories * nBeamParticlesTotal(beamIx) / obj.numOfRuns);
                 end

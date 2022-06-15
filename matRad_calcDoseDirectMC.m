@@ -129,7 +129,7 @@ if isfield(dij,'nbHistoriesTotal')
     resultGUI.nbHistoriesTotal = dij.nbHistoriesTotal;
     resultGUI.nbParticlesTotal = dij.nbParticlesTotal;
 elseif isfield(pln.propMC,'numHistories')
-    resultGUI.historiesMC = pln.propMC.histories;
+    resultGUI.historiesMC = pln.propMC.numHistories;
 end
 
 % remember original fluence weights

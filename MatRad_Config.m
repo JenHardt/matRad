@@ -495,9 +495,7 @@ classdef MatRad_Config < handle
                                     case {'carbon','helium'}
                                         config = MatRad_TopasConfig();
                                 end
-                                obj.dispWarning(['Default Monte Carlo engine "' class(config) '" for protons has been loaded']);
                             end
-                            obj.dispError('Monte Carlo engine could not be loaded');
                         end
                     case 'propHeterogeneity'
                         config = MatRad_HeterogeneityConfig();
