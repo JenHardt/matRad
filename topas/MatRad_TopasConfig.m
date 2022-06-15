@@ -1351,7 +1351,13 @@ classdef MatRad_TopasConfig < handle
                 % discard data if the current has unphysical values
                 idx = find([dataTOPAS.current] < 1);
                 dataTOPAS(idx) = [];
-                cutNumOfBixel = length(dataTOPAS(:));
+
+                if isempty(dataTOPAS)
+                    obj.matRad_cfg.dispError('dataTOPAS of beam %i is empty.',beamIx);
+                else
+                    cutNumOfBixel = length(dataTOPAS(:));
+                end
+
                 if obj.scorer.calcDij
                     historyCount(beamIx) = uint32(nBeamParticlesTotal(beamIx) / obj.numOfRuns);
                 else
