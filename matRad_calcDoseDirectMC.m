@@ -5,7 +5,6 @@ function resultGUI = matRad_calcDoseDirectMC(ct,stf,pln,cst,w)
 %
 % call
 %   resultGUI = matRad_calcDoseDirecMC(ct,stf,pln,cst)
-%   resultGUI = matRad_calcDoseDirecMC(ct,stf,pln,cst,w)
 %   resultGUI = matRad_calcDoseDirectMC(ct,stf,pln,cst,w)
 %
 % input

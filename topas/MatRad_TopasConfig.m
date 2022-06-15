@@ -1283,13 +1283,7 @@ classdef MatRad_TopasConfig < handle
                             dataTOPAS(cutNumOfBixel).posX = stf(beamIx).ray(rayIx).rayPos_bev(3);
                             dataTOPAS(cutNumOfBixel).posY = stf(beamIx).ray(rayIx).rayPos_bev(1);
 
-                            if obj.scorer.calcDij
-                                % write particles directly to every beamlet for dij calculation (each bixel
-                                % calculated separately with full numParticles
-                                dataTOPAS(cutNumOfBixel).current = uint32(nCurrentParticles / obj.numOfRuns);
-                            else
-                                dataTOPAS(cutNumOfBixel).current = uint32(obj.fracHistories*nCurrentParticles / obj.numOfRuns);
-                            end
+                            dataTOPAS(cutNumOfBixel).current = uint32(obj.fracHistories * nCurrentParticles / obj.numOfRuns);
 
                             if obj.pencilBeamScanning
                                 % angleX corresponds to the rotation around the X axis necessary to move the spot in the Y direction
@@ -1352,24 +1346,18 @@ classdef MatRad_TopasConfig < handle
                 idx = find([dataTOPAS.current] < 1);
                 dataTOPAS(idx) = [];
 
+                % Safety check for empty beam (not allowed)
                 if isempty(dataTOPAS)
                     obj.matRad_cfg.dispError('dataTOPAS of beam %i is empty.',beamIx);
                 else
                     cutNumOfBixel = length(dataTOPAS(:));
                 end
 
-                if obj.scorer.calcDij
-                    historyCount(beamIx) = uint32(nBeamParticlesTotal(beamIx) / obj.numOfRuns);
-                else
-                    historyCount(beamIx) = uint32(obj.fracHistories * nBeamParticlesTotal(beamIx) / obj.numOfRuns);
-                end
+                % Save adjusted beam histories
+                historyCount(beamIx) = uint32(obj.fracHistories * nBeamParticlesTotal(beamIx) / obj.numOfRuns);
 
-                %                 if historyCount(beamIx) < cutNumOfBixel || cutNumOfBixel == 0
-                %                     obj.matRad_cfg.dispError('Insufficient number of histories!')
-                %                 end
-
-                %adjust current to actual histories (by adding/subtracting
-                %from random rays)
+                % Check if current has the set amount of histories
+                % If needed, adjust current to actual histories (by adding/subtracting from random rays)
                 while sum([dataTOPAS(:).current]) ~= historyCount(beamIx)
 
                     diff = sum([dataTOPAS.current]) - sum(historyCount(beamIx));
@@ -1381,14 +1369,14 @@ classdef MatRad_TopasConfig < handle
                     [dataTOPAS(randIx).current] = newCurr{:};
                 end
 
+                % Previous histories were set per run
                 historyCount(beamIx) = historyCount(beamIx) * obj.numOfRuns;
 
-
-                %sort dataTOPAS according to energy
+                % Sort dataTOPAS according to energy
                 [~,ixSorted] = sort([dataTOPAS(:).energy]);
                 dataTOPAS = dataTOPAS(ixSorted);
 
-                %write TOPAS data base file
+                % Write TOPAS data base file
                 fieldSetupFileName = sprintf('beamSetup_%s_field%d.txt',obj.label,beamIx);
                 fileID = fopen(fullfile(obj.workingDir,fieldSetupFileName),'w');
                 obj.writeFieldHeader(fileID);
@@ -1444,9 +1432,11 @@ classdef MatRad_TopasConfig < handle
                         obj.matRad_cfg.dispError('Invalid radiation mode %s!',stf.radiationMode)
                 end
 
+                % Write couch and gantry angles
                 fprintf(fileID,'d:Sim/GantryAngle = %f deg\n',stf(beamIx).gantryAngle);
                 fprintf(fileID,'d:Sim/CouchAngle = %f deg\n',stf(beamIx).couchAngle);
 
+                % Write time feature (TOPAS uses time features to loop through bixels)
                 fprintf(fileID,'d:Tf/TimelineStart = 0. ms\n');
                 fprintf(fileID,'d:Tf/TimelineEnd = %i ms\n', 10 * cutNumOfBixel);
                 fprintf(fileID,'i:Tf/NumberOfSequentialTimes = %i\n', cutNumOfBixel);
@@ -1455,12 +1445,13 @@ classdef MatRad_TopasConfig < handle
                 fprintf(fileID,' ms\n');
                 %fprintf(fileID,'uv:Tf/Beam/Spot/Values = %i %s\n',cutNumOfBixel,num2str(collectBixelIdx));
 
+                % Write energySpectrum if available and flag is set
                 if isfield(baseData.machine.data,'energySpectrum') && obj.useEnergySpectrum
-
                     obj.matRad_cfg.dispInfo('Beam energy spectrum available\n');
                     energySpectrum = [baseData.machine.data(:).energySpectrum];
                     nbSpectrumPoints = length(energySpectrum(1).energy_MeVpN);
 
+                    % Get energy indices of the current energies in the baseData
                     [~,energyIx] = ismember([dataTOPAS.nominalEnergy],[baseData.machine.data.energy]);
 
                     fprintf(fileID,'s:So/PencilBeam/BeamEnergySpectrumType = "Continuous"\n');
@@ -1476,25 +1467,29 @@ classdef MatRad_TopasConfig < handle
                         fprintf(fileID,'dv:Tf/Beam/EnergySpectrum/Weight/Point%03d/Times = Tf/Beam/Spot/Times ms\n',spectrumPoint);
                         fprintf(fileID,'uv:Tf/Beam/EnergySpectrum/Weight/Point%03d/Values = %d %s\n',spectrumPoint,cutNumOfBixel,strtrim(sprintf('%f ',points_weight(spectrumPoint,:))));
                     end
-
                 end
 
+                % Write amount of energies in plan
                 fprintf(fileID,'s:Tf/Beam/Energy/Function = "Step"\n');
                 fprintf(fileID,'dv:Tf/Beam/Energy/Times = Tf/Beam/Spot/Times ms\n');
                 fprintf(fileID,'dv:Tf/Beam/Energy/Values = %i ', cutNumOfBixel);
 
-                fprintf(fileID,num2str(particleA*[dataTOPAS.energy])); %Transform total energy with atomic number
+                % Write actual energies
+                % WARNING: Transform total energy with atomic number
+                fprintf(fileID,num2str(particleA*[dataTOPAS.energy]));
                 fprintf(fileID,' MeV\n');
 
-
+                % Write beam profile
                 switch obj.beamProfile
                     case 'biGaussian'
+                        % Write energy spread
                         fprintf(fileID,'s:Tf/Beam/EnergySpread/Function = "Step"\n');
                         fprintf(fileID,'dv:Tf/Beam/EnergySpread/Times = Tf/Beam/Spot/Times ms\n');
                         fprintf(fileID,'uv:Tf/Beam/EnergySpread/Values = %i ', cutNumOfBixel);
                         fprintf(fileID,num2str([dataTOPAS.energySpread]));
                         fprintf(fileID,'\n');
 
+                        % Write parameters for first dimension
                         fprintf(fileID,'s:Tf/Beam/SigmaX/Function = "Step"\n');
                         fprintf(fileID,'dv:Tf/Beam/SigmaX/Times = Tf/Beam/Spot/Times ms\n');
                         fprintf(fileID,'dv:Tf/Beam/SigmaX/Values = %i ', cutNumOfBixel);
@@ -1511,6 +1506,7 @@ classdef MatRad_TopasConfig < handle
                         fprintf(fileID,num2str([dataTOPAS.correlation]));
                         fprintf(fileID,'\n');
 
+                        % Write parameters for second dimension (profile is uniform)
                         fprintf(fileID,'s:Tf/Beam/SigmaY/Function = "Step"\n');
                         fprintf(fileID,'dv:Tf/Beam/SigmaY/Times = Tf/Beam/Spot/Times ms\n');
                         fprintf(fileID,'dv:Tf/Beam/SigmaY/Values = %i ', cutNumOfBixel);
@@ -1534,6 +1530,7 @@ classdef MatRad_TopasConfig < handle
                         fprintf(fileID,' mm\n');
                 end
 
+                % Write spot angles
                 if obj.pencilBeamScanning
                     fprintf(fileID,'s:Tf/Beam/AngleX/Function = "Step"\n');
                     fprintf(fileID,'dv:Tf/Beam/AngleX/Times = Tf/Beam/Spot/Times ms\n');
@@ -1547,6 +1544,7 @@ classdef MatRad_TopasConfig < handle
                     fprintf(fileID,' rad\n');
                 end
 
+                % Write spot positions
                 fprintf(fileID,'s:Tf/Beam/PosX/Function = "Step"\n');
                 fprintf(fileID,'dv:Tf/Beam/PosX/Times = Tf/Beam/Spot/Times ms\n');
                 fprintf(fileID,'dv:Tf/Beam/PosX/Values = %i ', cutNumOfBixel);
@@ -1558,13 +1556,14 @@ classdef MatRad_TopasConfig < handle
                 fprintf(fileID,num2str([dataTOPAS.posY]));
                 fprintf(fileID,' mm\n');
 
+                % Write spot current (translates to the amount of particles in a spot)
                 fprintf(fileID,'s:Tf/Beam/Current/Function = "Step"\n');
                 fprintf(fileID,'dv:Tf/Beam/Current/Times = Tf/Beam/Spot/Times ms\n');
                 fprintf(fileID,'iv:Tf/Beam/Current/Values = %i ', cutNumOfBixel);
                 fprintf(fileID,num2str([dataTOPAS.current]));
                 fprintf(fileID,'\n\n');
 
-                %Range shifter in/out
+                % Range shifter in/out
                 if ~isempty(raShis)
                     fprintf(fileID,'#Range Shifter States:\n');
                     for r = 1:numel(raShis)
@@ -1576,21 +1575,21 @@ classdef MatRad_TopasConfig < handle
                     end
                 end
 
-                %Range Shifter Definition
+                % Range Shifter Definition
                 for r = 1:numel(raShis)
                     obj.writeRangeShifter(fileID,raShis(r),sourceToNozzleDistance);
                 end
 
+                % Select and write beam profile 
                 switch obj.beamProfile
                     case 'biGaussian'
                         TOPAS_beamSetup = fileread('TOPAS_beamSetup_biGaussian.txt.in');
                     case 'simple'
                         TOPAS_beamSetup = fileread('TOPAS_beamSetup_generic.txt.in');
                 end
-
                 fprintf(fileID,'%s\n',TOPAS_beamSetup);
 
-                %translate patient according to beam isocenter
+                % Translate patient according to beam isocenter
                 fprintf(fileID,'d:Ge/Patient/TransX      = %f mm\n',0.5*ct.resolution.x*(ct.cubeDim(2)+1)-stf(beamIx).isoCenter(1));
                 fprintf(fileID,'d:Ge/Patient/TransY      = %f mm\n',0.5*ct.resolution.y*(ct.cubeDim(1)+1)-stf(beamIx).isoCenter(2));
                 fprintf(fileID,'d:Ge/Patient/TransZ      = %f mm\n',0.5*ct.resolution.z*(ct.cubeDim(3)+1)-stf(beamIx).isoCenter(3));
@@ -1598,13 +1597,13 @@ classdef MatRad_TopasConfig < handle
                 fprintf(fileID,'d:Ge/Patient/RotY=0. deg\n');
                 fprintf(fileID,'d:Ge/Patient/RotZ=0. deg\n');
 
-                %load topas modules depending on the particle type
+                % Load topas modules depending on the particle type
                 fprintf(fileID,'\n# MODULES\n');
                 moduleString = cellfun(@(s) sprintf('"%s"',s),modules,'UniformOutput',false);
                 fprintf(fileID,'sv:Ph/Default/Modules = %d %s\n',length(modules),strjoin(moduleString,' '));
 
                 fclose(fileID);
-                %write run scripts for TOPAS
+                % Write run scripts for TOPAS
                 for runIx = 1:obj.numOfRuns
                     runFileName = sprintf('%s_field%d_run%d.txt',obj.label,beamIx,runIx);
                     fileID = fopen(fullfile(obj.workingDir,runFileName),'w');
@@ -1632,7 +1631,7 @@ classdef MatRad_TopasConfig < handle
                 end
             end
 
-            %Bookkeeping
+            % Bookkeeping
             obj.MCparam.nbParticlesTotal = sum(nBeamParticlesTotal);
             obj.MCparam.nbHistoriesTotal = sum(historyCount);
             obj.MCparam.nbParticlesField = nBeamParticlesTotal;
@@ -1685,22 +1684,25 @@ classdef MatRad_TopasConfig < handle
                 obj.materialConverter.mode = pln.propMC.materialConverter.mode;
             end
 
-            paramFile = obj.outfilenames.patientParam;
-            dataFile = obj.outfilenames.patientCube;
-
-            %Bookkeeping
+            % Bookkeeping
             obj.MCparam.imageCubeOrdering = obj.arrayOrdering;
             obj.MCparam.imageCubeConversionType = obj.materialConverter.mode;
             obj.MCparam.imageCubeFile = obj.outfilenames.patientCube;
             obj.MCparam.imageCubeDim = ct.cubeDim;
             obj.MCparam.imageVoxelDimension = ct.resolution;
 
+            % Save filenames
+            paramFile = obj.outfilenames.patientParam;
+            dataFile = obj.outfilenames.patientCube;
+
+            % Open file to write in data
             outfile = fullfile(obj.workingDir, paramFile);
             obj.matRad_cfg.dispInfo('Writing data to %s\n',outfile)
             fID = fopen(outfile,'w+');
 
+            % Write material converter
             switch obj.materialConverter.mode
-                case 'RSP'
+                case 'RSP' % Relative stopping power converter
                     rspHlut = matRad_loadHLUT(ct,pln);
                     min_HU = rspHlut(1,1);
                     max_HU = rspHlut(end,1);
@@ -1751,7 +1753,8 @@ classdef MatRad_TopasConfig < handle
                     fclose(fID);
                     cube = huCube;
 
-                case 'HUToWaterSchneider'
+                
+                case 'HUToWaterSchneider' % Schneider converter
                     rspHlut = matRad_loadHLUT(ct,pln);
                     try
                         % Write Schneider Converter

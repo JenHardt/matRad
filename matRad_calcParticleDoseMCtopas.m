@@ -47,12 +47,21 @@ end
 
 % Set parameters for full Dij calculation
 if ~calcDoseDirect
-    matRad_cfg.dispWarning('You have selected TOPAS dij calculation, this may take a while ^^');
     pln.propMC.scorer.calcDij = true;
     pln.propMC.numOfRuns = 1;
 
     % Load class variables in pln
-    pln = matRad_cfg.getDefaultClass(pln,'propMC');
+    pln = matRad_cfg.getDefaultClass(pln,'propMC','MatRad_TopasConfig');
+
+    if pln.propMC.numHistories  < 1e10
+        matRad_cfg.dispWarning('Selected TOPAS dij calculation with fewer than normal histories (default 1e10), make sure you want to continue.');
+    else
+        matRad_cfg.dispWarning('You have selected TOPAS dij calculation, this may take a while ^^');
+    end
+else
+    if ~isa(pln.propMC,'MatRad_TopasConfig')
+        matRad_cfg.dispError('Run calcParticleDoseMCtopas through calcDoseDirectMC');
+    end
 end
 
 % load default parameters for doseCalc in case they haven't been set yet

@@ -231,7 +231,11 @@ if pln.bioParam.bioOpt
 end
 
 % lateral cutoff for raytracing and geo calculations
-pln.propDoseCalc.effectiveLateralCutOff = pln.propDoseCalc.geometricCutOff;
+pln.propDoseCalc.effectiveLateralCutOff = matRad_cfg.propDoseCalc.defaultGeometricCutOff;
+
+if ~isfield(pln,'propDoseCalc') || ~isfield(pln.propDoseCalc,'lateralCutOff')
+    pln.propDoseCalc.lateralCutOff = matRad_cfg.propDoseCalc.defaultLateralCutOff;
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %loop over all shift scenarios
@@ -523,7 +527,6 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                                             sigmaIni_sq, ...
                                             machine.data(energyIx));
                                     end
-
 
                                     % dij sampling is exluded for particles until we investigated the influence of voxel sampling for particles
                                     %relDoseThreshold   =  0.02;   % sample dose values beyond the relative dose

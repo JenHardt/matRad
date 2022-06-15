@@ -158,7 +158,6 @@ classdef MatRad_Config < handle
             obj.propDoseCalc.defaultResolution = struct('x',3,'y',3,'z',3); %[mm]
             obj.propDoseCalc.defaultLateralCutOff = 0.995; %[rel.]
             obj.propDoseCalc.defaultGeometricCutOff = 50; %[mm]
-            obj.propDoseCalc.defaultKernelCutOff = Inf; %[mm]
             obj.propDoseCalc.defaultSsdDensityThreshold = 0.05; %[rel.]
             obj.propDoseCalc.defaultUseGivenEqDensityCube = false; %Use the given density cube ct.cube and omit conversion from cubeHU.
             obj.propDoseCalc.defaultIgnoreOutsideDensities = true; %Ignore densities outside of cst contours
@@ -405,163 +404,104 @@ classdef MatRad_Config < handle
                                 end
                             end
                         end
-
-                    elseif strcmp(currField,'propMC')
-                        % Get defaults for Monte Carlo
-                        % if isfield(pln,'propMC')
-                        if isfield(pln.propMC,'outputVariance')
-                            obj.dispWarning('Variance scoring for TOPAS not yet supported.');
-                        end
-
-                        if strcmp(pln.radiationMode,'protons')
-                            engines = {'TOPAS','MCsquare'};
-                            if ~isfield(pln.propMC,'engine') || ~any(strcmp(pln.propMC.engine,engines))
-                                obj.dispInfo('Using default proton MC engine "%s"\n',obj.propMC.default_proton_engine);
-                                pln.propMC.engine = obj.propMC.default_proton_engine;
-                            end
-
-
-                        elseif strcmp(pln.radiationMode,'carbon') || strcmp(pln.radiationMode,'helium')
-                            if ~isfield(pln.propMC,'engine')
-                                pln.propMC.engine = obj.propMC.default_carbon_engine;
-                            end
-
-                        else
-                            obj.dispError('MC only implemented for protons, helium and carbon ions (only TOPAS).');
-                        end
-
-                        switch pln.propMC.engine
-                            % number of histories per beamlet (nCasePerBixel > 1),
-                            % max stat uncertainity (0 < nCasePerBixel < 1)
-                            % set number of particles simulated per pencil beam
-                            case 'MCsquare'
-                                if ~isfield(pln.propMC,'numHistories') || (pln.propMC.numHistories==obj.propMC.MCsquare_defaultHistories)
-                                    pln.propMC.numHistories = obj.propMC.MCsquare_defaultHistories;
-                                    obj.dispInfo('Using default number of Histories per Bixel: %d\n',pln.propMC.histories);
-                                end
-                            case 'TOPAS'
-                                if ~isfield(pln.propMC,'externalCalculation')
-                                    pln.propMC.externalCalculation = obj.propMC.defaultExternalCalculation;
-                                end
-                                if ~isfield(pln.propMC,'numHistories') || (pln.propMC.numHistories==obj.propMC.particles_defaultHistories)
-                                    pln.propMC.numHistories = obj.propMC.particles_defaultHistories;
-                                    obj.dispInfo('Using default number of Histories per Bixel: %d\n',pln.propMC.numHistories);
-                                end
-                        end
                     end
-                end
-
-                % Do final heterogeneity checks
-                if strcmp(currField,'propHeterogeneity')
-                    % Turn off modulateBioDose in case no suitable RBE model is used
-                    if isfield(pln,'bioParam') && ~pln.bioParam.bioOpt
-                        pln.propHeterogeneity.modulateBioDose = 0;
-                    end
-
-                    % Monte Carlo settings
-                    if isfield(pln.propHeterogeneity,'sampling') && strcmp(pln.propHeterogeneity.sampling.mode,'TOPAS')
-                        pln.propMC.engine = 'TOPAS';
-                    end
-
                 end
             end
         end
 
-        function pln = getDefaultClass(obj,pln,propFields)
-            % load TOPAS config from pln or from class
-            configFound = 0;
-
-            if ~iscell(propFields)
-                propFields = cellstr(propFields);
-            end
-
-            for i = 1:length(propFields)
-                % Create a default instance of the configuration
-                switch propFields{i}
+        function pln = getDefaultClass(obj,pln,propName,configName)
+            % load config from pln or from class
+            if (isfield(pln,propName) && isstruct(pln.(propName)) && nargin < 4) || (~isfield(pln,propName) && nargin < 4)%if there is no config found
+                switch propName
                     case 'propMC'
-                        if isfield(pln,propFields{i}) && strcmp(propFields{i},'propMC') && isfield(pln.propMC,'engine')
+                        if isfield(pln,'propMC') && strcmp(propName,'propMC') && isfield(pln.propMC,'engine')
                             switch pln.propMC.engine
                                 case 'TOPAS'
-                                    config = MatRad_TopasConfig();
+                                    configName = 'MatRad_TopasConfig';
                                 case 'MCsquare'
-                                    config = MatRad_MCsquareConfig();
+                                    configName = 'MatRad_MCsquareConfig';
                             end
                             pln.propMC = rmfield(pln.propMC,'engine');
                         else
                             if isfield(pln,'radiationMode') && ~isempty(pln.radiationMode)
                                 switch pln.radiationMode
                                     case 'protons'
-                                        config = MatRad_MCsquareConfig();
-                                    case {'carbon','helium'}
-                                        config = MatRad_TopasConfig();
+                                        configName = 'MatRad_MCsquareConfig';
+                                    otherwise
+                                        configName = 'MatRad_TopasConfig';
                                 end
                             end
                         end
-                    case 'propHeterogeneity'
-                        config = MatRad_HeterogeneityConfig();
                     otherwise
-                        obj.dispError('Config for ''%s'' not implemented',class(config));
+                        obj.dispError('Config for ''%s'' not implemented',configName);
+                end
+            elseif nargin == 4
+
+            elseif nargin < 4 && ~isstruct(pln.(propName))
+                    % get config name from input field
+                    configName = class(pln.(propName));
+            else
+                obj.dispError('Error in default clasee');
+            end
+
+            if ~isfield(pln,propName)
+                pln.(propName) = struct();
+            end
+            %Overwrite parameters
+            %mc = metaclass(topasConfig); %get metaclass information to check if we can overwrite properties
+            if isstruct(pln.(propName))
+                % Load configs
+                switch configName
+                    case 'MatRad_TopasConfig'
+                        config = MatRad_TopasConfig();
+                        pln.propMC.engine = 'TOPAS';
+                    case 'MatRad_MCsquareConfig'
+                        config = MatRad_MCsquareConfig();
+                        pln.propMC.engine = 'MCsquare';
                 end
 
-                if isfield(pln,propFields{i})
-                    if (exist('configName','var') && isa(pln.(propFields{i}),class(config))) || isa(pln.(propFields{i}),class(config))
-                        % Config found in pln
-                        obj.dispInfo(['Using given ' class(config) ' in pln.' propFields{i} '!\n']);
-                        configFound = 1;
-                    else
-                        %Overwrite parameters
-                        %mc = metaclass(topasConfig); %get metaclass information to check if we can overwrite properties
-                        if isstruct(pln.(propFields{i}))
-                            props = fieldnames(pln.(propFields{i}));
-                            for fIx = 1:numel(props)
-                                fName = props{fIx};
-                                if isprop(config,fName)
-                                    if isstruct(pln.(propFields{i}).(fName))
-                                        SubProps = fieldnames(pln.(propFields{i}).(fName));
-                                        for SubfIx = 1:numel(SubProps)
-                                            subfName = SubProps{SubfIx};
-                                            if isfield(config.(fName),subfName)
-                                                %We use a try catch block to catch errors when trying
-                                                %to overwrite protected/private properties instead of a
-                                                %metaclass approach
-                                                try
-                                                    config.(fName).(subfName) = pln.(propFields{i}).(fName).(subfName);
-                                                catch
-                                                    obj.dispWarning(['Property ''%s'' for ' class(config) ' will be omitted due to protected/private access or invalid value.'],fName);
-                                                end
-                                            else
-                                                obj.dispWarning(['Unkown property ''%s'' for ' class(config) ' will be omitted.'],fName);
-                                            end
-                                        end
-                                    else
-                                        %We use a try catch block to catch errors when trying
-                                        %to overwrite protected/private properties instead of a
-                                        %metaclass approach
-                                        try
-                                            config.(fName) = pln.(propFields{i}).(fName);
-                                        catch
-                                            obj.dispWarning(['Property ''%s'' for ' class(config) ' will be omitted due to protected/private access or invalid value.'],fName);
-                                        end
+                props = fieldnames(pln.(propName));
+                for fIx = 1:numel(props)
+                    fName = props{fIx};
+                    if isprop(config,fName)
+                        if isstruct(pln.(propName).(fName))
+                            SubProps = fieldnames(pln.(propName).(fName));
+                            for SubfIx = 1:numel(SubProps)
+                                subfName = SubProps{SubfIx};
+                                if isfield(config.(fName),subfName)
+                                    %We use a try catch block to catch errors when trying
+                                    %to overwrite protected/private properties instead of a
+                                    %metaclass approach
+                                    try
+                                        config.(fName).(subfName) = pln.(propName).(fName).(subfName);
+                                    catch
+                                        obj.dispWarning(['Property ''%s'' for ' configName ' will be omitted due to protected/private access or invalid value.'],fName);
                                     end
                                 else
-                                    obj.dispWarning(['Unkown property ''%s'' for ' class(config) ' will be omitted.'],fName);
+                                    obj.dispWarning(['Unkown property ''%s'' for ' configName ' will be omitted.'],fName);
                                 end
                             end
                         else
-                            obj.dispError(['Invalid Configuration in pln.' propFields{i}]);
+                            %We use a try catch block to catch errors when trying
+                            %to overwrite protected/private properties instead of a
+                            %metaclass approach
+                            try
+                                config.(fName) = pln.(propName).(fName);
+                            catch
+                                obj.dispWarning(['Property ''%s'' for ' class(config) ' will be omitted due to protected/private access or invalid value.'],fName);
+                            end
                         end
+                    else
+                        obj.dispWarning(['Unkown property ''%s'' for ' class(config) ' will be omitted.'],fName);
                     end
                 end
 
                 % Write config to pln
-                if ~configFound
-                    pln.(propFields{i}) = config;
-                end
-
-                % Send info to console
-                obj.dispInfo(['Class ' class(config) ' has been loaded to pln.' propFields{i} '!\n']);
+                pln.(propName) = config;
             end
 
+            % Send info to console
+            obj.dispInfo(['Class ' class(pln.(propName)) ' has been loaded to pln.' propName '!\n']);
         end
     end
 

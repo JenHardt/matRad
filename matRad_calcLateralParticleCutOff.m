@@ -125,7 +125,6 @@ for energyIx = vEnergiesIx
                                    machine.data(energyIx).Z.weight) * conversionFactor;
     else
         idd_org = machine.data(energyIx).Z * conversionFactor;
-    end
     
     [~,peakIxOrg] = max(idd_org); 
     
@@ -150,7 +149,6 @@ for energyIx = vEnergiesIx
                                    machine.data(energyIx).Z.weight) * conversionFactor;
     else
         idd  = matRad_interp1(machine.data(energyIx).depths,machine.data(energyIx).Z,depthValues) * conversionFactor; 
-    end
      
     cnt = cnt +1 ;
     % % calculate dose in spot
@@ -264,8 +262,7 @@ if visBool
                                    machine.data(energyIx).Z.weight) * conversionFactor;
     else
         idd  = matRad_interp1(machine.data(energyIx).depths,machine.data(energyIx).Z,depthValues) * conversionFactor; 
-    end
-    
+
     [~,peakixDepth] = max(idd); 
     dosePeakPos = matRad_calcParticleDoseBixel(machine.data(energyIx).depths(peakixDepth), 0, sigmaIni_sq, baseData);   
     
@@ -292,7 +289,7 @@ if visBool
        idd = heterogeneityConfig.sumGauss(entry.depths,entry.Z.mean,entry.Z.width.^2,entry.Z.weight);
     else
        idd = machine.data(energyIx).Z;
-    end
+
     subplot(312),plot(machine.data(energyIx).depths,idd*conversionFactor,'k','LineWidth',2),grid on,hold on
                  plot(radDepths - machine.data(energyIx).offset,vDoseInt,'r--','LineWidth',2),hold on,
                  plot(radDepths - machine.data(energyIx).offset,vDoseInt * TmpCompFac,'bx','LineWidth',1),hold on,
