@@ -221,11 +221,19 @@ classdef MatRad_MCemittanceBaseData
                     energySpread(energySpread < 0) = 0;
                     mcDataEnergy.EnergySpread = sqrt(energySpread);
                 case 'carbon'
-                    meanEnergy = @(x) 10.55 * x^0.6409 + 14.14;
+                    % Fit to Range-Energy relationship
+                    % Data from "Update to ESTAR, PSTAR, and ASTAR Databases" - ICRU Report 90, 2014
+                    % Normalized energy before fit (MeV/u)! Only used energies [50 450] MeV for fit
+                    % https://www.nist.gov/system/files/documents/2017/04/26/newstar.pdf
+                    meanEnergy = @(x) 11.99 * x^0.6202 + 8.781;
                     mcDataEnergy.MeanEnergy = meanEnergy(r80);                 
                     mcDataEnergy.EnergySpread = obj.energyspread; 
                 case 'helium'
-                    meanEnergy = @(x) 7.466* x.^0.5879 + 3.087;
+                    % Fit to Range-Energy relationship
+                    % Data from "Update to ESTAR, PSTAR, and ASTAR Databases" - ICRU Report 90, 2014
+                    % Normalized energy before fit (MeV/u)! Only used energies [30 200] MeV for fit
+                    % https://www.nist.gov/system/files/documents/2017/04/26/newstar.pdf
+                    meanEnergy = @(x) 7.534* x.^0.5856 + 3.257;
                     mcDataEnergy.MeanEnergy = meanEnergy(r80);  
                     mcDataEnergy.EnergySpread = obj.energyspread; 
                 otherwise
