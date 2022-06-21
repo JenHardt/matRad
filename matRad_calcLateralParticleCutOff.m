@@ -125,7 +125,8 @@ for energyIx = vEnergiesIx
                                    machine.data(energyIx).Z.weight) * conversionFactor;
     else
         idd_org = machine.data(energyIx).Z * conversionFactor;
-    
+    end
+
     [~,peakIxOrg] = max(idd_org); 
     
     % get indices for which a lateral cutoff should be calculated
@@ -149,7 +150,8 @@ for energyIx = vEnergiesIx
                                    machine.data(energyIx).Z.weight) * conversionFactor;
     else
         idd  = matRad_interp1(machine.data(energyIx).depths,machine.data(energyIx).Z,depthValues) * conversionFactor; 
-     
+    end
+    
     cnt = cnt +1 ;
     % % calculate dose in spot
     baseData                   = machine.data(energyIx);
@@ -289,7 +291,8 @@ if visBool
        idd = heterogeneityConfig.sumGauss(entry.depths,entry.Z.mean,entry.Z.width.^2,entry.Z.weight);
     else
        idd = machine.data(energyIx).Z;
-
+    end
+    
     subplot(312),plot(machine.data(energyIx).depths,idd*conversionFactor,'k','LineWidth',2),grid on,hold on
                  plot(radDepths - machine.data(energyIx).offset,vDoseInt,'r--','LineWidth',2),hold on,
                  plot(radDepths - machine.data(energyIx).offset,vDoseInt * TmpCompFac,'bx','LineWidth',1),hold on,

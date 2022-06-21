@@ -188,7 +188,7 @@ if pln.bioParam.bioOpt
     dij.abx(dij.bx>0) = dij.ax(dij.bx>0)./dij.bx(dij.bx>0);
 
     % only if LEM is used corresponding bio data must be available in the base data set
-    if strcmp(pln.bioParam.model,'LEM') || pln.propHeterogeneity.calcHetero
+    if strcmp(pln.bioParam.model,'LEM') || (isfield(pln,'propHeterogeneity') && pln.propHeterogeneity.calcHetero)
         if isfield(machine.data,'alphaX') && isfield(machine.data,'betaX')
 
             matRad_cfg.dispInfo('loading biological base data...');
