@@ -86,10 +86,10 @@ switch pln.propMC.engine
 end
 
 %dij.numOfBeams = size(stf,2);
-dij.beamNum = [1:size(stf,2)]';
+% dij.beamNum = [1:size(stf,2)]';
 
 % calc resulting dose
-if ~pln.propMC.externalCalculation
+if ~isfield(pln.propMC,'externalCalculation') || ~pln.propMC.externalCalculation
     if pln.multScen.totNumScen == 1
         % calculate cubes; use uniform weights here, weighting with actual fluence
         % already performed in dij construction
