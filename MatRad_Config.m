@@ -176,17 +176,15 @@ classdef MatRad_Config < handle
             obj.propMC.ompMC_defaultHistories = 1e6;
             obj.propMC.ompMC_defaultOutputVariance = false;
 
-            obj.propMC.direct_defaultHistories = 1e7;
-            obj.propMC.particles_defaultHistories = 2e4;
-            obj.propMC.MCsquare_defaultHistories = 1e8;
+            % Set default histories for MonteCarlo here if necessary
+%             obj.propMC.defaultNumHistories = 100;
 
             %obj.propMC.default_photon_engine = 'ompMC';
-            obj.propMC.default_proton_engine = 'MCsquare';
-            obj.propMC.default_carbon_engine = 'TOPAS';
+            obj.propMC.default_proton_engine = 'MatRad_MCsquareConfig';
+            obj.propMC.default_carbon_engine = 'MatRad_TopasConfig';
 
             % Default settings for TOPAS
             obj.propMC.defaultExternalCalculation = false;
-            obj.propMC.topas_defaultNumBatches = 5;
             obj.propMC.defaultCalcDij = false;
 
             obj.propHeterogeneity.defaultType = 'complete'; % 'depthBased','voxelwise'
@@ -245,15 +243,12 @@ classdef MatRad_Config < handle
             obj.propMC.ompMC_defaultHistories = 100;
             obj.propMC.ompMC_defaultOutputVariance = true;
 
-            obj.propMC.particles_defaultHistories = 100;
-            obj.propMC.direct_defaultHistories = 100;
+            % Set default histories for MonteCarlo
+            obj.propMC.defaultNumHistories = 100;
 
             %obj.propMC.default_photon_engine = 'ompMC';
-            obj.propMC.default_proton_engine = 'MCsquare';
-            obj.propMC.default_carbon_engine = 'TOPAS';
-
-            % Default settings for TOPAS
-            obj.propMC.topas_defaultNumBatches = 5;
+            obj.propMC.default_proton_engine = 'MatRad_MCsquareConfig';
+            obj.propMC.default_carbon_engine = 'MatRad_TopasConfig';
 
             obj.propHeterogeneity.defaultType = 'complete'; % 'depthBased','voxelwise'
             obj.propHeterogeneity.defaultCalcHetero = true;
@@ -426,9 +421,9 @@ classdef MatRad_Config < handle
                             if isfield(pln,'radiationMode') && ~isempty(pln.radiationMode)
                                 switch pln.radiationMode
                                     case 'protons'
-                                        configName = 'MatRad_MCsquareConfig';
+                                        configName = obj.propMC.default_proton_engine;
                                     otherwise
-                                        configName = 'MatRad_TopasConfig';
+                                        configName = obj.propMC.default_carbon_engine;
                                 end
                             end
                         end
