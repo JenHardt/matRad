@@ -42,19 +42,21 @@ classdef MatRad_HeterogeneityConfig < handle
             'numOfSamples',20,...
             'continuous',true);
 
-        % Function handle for calculating lateral dose
-        Gauss    = @(x,mu,SqSigma) 1./(sqrt(2*pi.*SqSigma)).*exp(-((x - mu).^2./(2.*SqSigma)));
-
-        % Function handle for calculating depth doses
-        sumGauss = @(x,mu,SqSigma,w) (1./sqrt(2*pi*ones(numel(x),1) .* SqSigma') .* ...
-            exp(-bsxfun(@minus,x,mu').^2 ./ (2* ones(numel(x),1) .* SqSigma' ))) * w;
-
-
     end
 
     methods
         function obj = MatRad_HeterogeneityConfig()
             % MatRad_TopasConfig Construct configuration Class for TOPAS
+        end
+
+        function out = Gauss(~,x,mu,SqSigma)
+            % Function handle for calculating lateral dose
+            out = 1./(sqrt(2*pi.*SqSigma)).*exp(-((x - mu).^2./(2.*SqSigma)));
+        end
+
+        function out = sumGauss(~,x,mu,SqSigma,w)
+            % Function handle for calculating depth doses
+            out = (1./sqrt(2*pi*ones(numel(x),1) .* SqSigma') .* exp(-bsxfun(@minus,x,mu').^2 ./ (2* ones(numel(x),1) .* SqSigma' ))) * w;
         end
 
         function sigmaSq = getHeterogeneityCorrSigmaSq(obj,WET,Pmod)
@@ -98,7 +100,7 @@ classdef MatRad_HeterogeneityConfig < handle
             % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             % Handle inputs
-            if nargin < 2
+            if nargin < 3
                 % "medium" modulation power
                 % Pmod = 256; % [µm]
 
