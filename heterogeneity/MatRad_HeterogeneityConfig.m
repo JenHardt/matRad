@@ -29,6 +29,9 @@ classdef MatRad_HeterogeneityConfig < handle
         modulateLET = true;
         modulateBioDose = true;
 
+        % "medium" modulation power
+        % Pmod = 256; % [µm]
+        % worst case modulation power
         modPower = 800;
 
         useDoseCurves = true;
@@ -59,7 +62,7 @@ classdef MatRad_HeterogeneityConfig < handle
             out = (1./sqrt(2*pi*ones(numel(x),1) .* SqSigma') .* exp(-bsxfun(@minus,x,mu').^2 ./ (2* ones(numel(x),1) .* SqSigma' ))) * w;
         end
 
-        function sigmaSq = getHeterogeneityCorrSigmaSq(obj,WET,Pmod)
+        function sigmaSq = getHeterogeneityCorrSigmaSq(obj,WET)
             % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % matRad calculation of Bragg peak degradation due to heterogeneities
             %
@@ -99,21 +102,8 @@ classdef MatRad_HeterogeneityConfig < handle
             %
             % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-            % Handle inputs
-            if nargin < 3
-                % "medium" modulation power
-                % Pmod = 256; % [µm]
-
-                % worst case modulation power
-                % modPower set in heterogeneityClass
-                Pmod = obj.modPower; % [µm]
-            end
-
-            % output used modulation power to console
-            obj.matRad_cfg.dispInfo(['Modulation power set to Pmod = ' num2str(Pmod) ' µm.\n']);
-
             % output sigma^2 in mm^2
-            sigmaSq = Pmod/1000 .* WET;
+            sigmaSq = obj.modPower/1000 .* WET;
         end
 
         function cst = cstHeteroAutoassign(~,cst)
