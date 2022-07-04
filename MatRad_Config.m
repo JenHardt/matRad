@@ -427,6 +427,8 @@ classdef MatRad_Config < handle
                                 end
                             end
                         end
+                    case 'propHeterogeneity'
+                        configName = 'MatRad_HeterogeneityConfig';
                     otherwise
                         obj.dispError('Config for ''%s'' not implemented',configName);
                 end
@@ -453,6 +455,8 @@ classdef MatRad_Config < handle
                     case 'MatRad_MCsquareConfig'
                         config = MatRad_MCsquareConfig();
                         pln.propMC.engine = 'MCsquare';
+                    case 'MatRad_HeterogeneityConfig'
+                        config = MatRad_HeterogeneityConfig;
                 end
 
                 props = fieldnames(pln.(propName));

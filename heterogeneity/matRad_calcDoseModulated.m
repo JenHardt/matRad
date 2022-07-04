@@ -7,7 +7,8 @@ matRad_cfg =  MatRad_Config.instance();
 if isfield(pln,'propMC')
     pln = matRad_cfg.getDefaultClass(pln,'propMC');
 end
-pln.propHeterogeneity = MatRad_HeterogeneityConfig();
+pln = matRad_cfg.getDefaultClass(pln,'propHeterogeneity');
+pln.propHeterogeneity.calcHetero = false;
 
 % load default parameters in case they haven't been set yet
 pln = matRad_cfg.getDefaultProperties(pln,'propDoseCalc');
@@ -92,6 +93,13 @@ switch pln.propHeterogeneity.sampling.mode
         cstR = cst;
 end
 
+% Initialize waitbar if calculation locally
+if ~calcExternal
+    figureWait = waitbar(0,['calculate modulated dose for ' pln.propHeterogeneity.sampling.mode ': Sample ' num2str(1) '/' num2str(samples)]);
+    % prevent closure of waitbar and show busy state
+    set(figureWait,'pointer','watch');
+end
+
 % set this flag so that the modulated cube is not overwritten in matRad_calcDoseInit
 pln.propDoseCalc.useGivenEqDensityCube = true;
 
@@ -100,9 +108,6 @@ resultGUI = struct;
 data = cell(samples,1);
 
 for i = 1:samples
-    % Write current sample to the console
-    matRad_cfg.dispInfo([pln.propHeterogeneity.sampling.mode,': Dose calculation for CT ' num2str(i) '/' num2str(samples)])
-
     % Modulate density of ct cube
     ct_mod = pln.propHeterogeneity.modulateDensity(ctR,cstR,pln);
 
@@ -142,11 +147,21 @@ for i = 1:samples
         data{i} = resultGUI_mod.physicalDose;
     end
 
+    % Update waitbar if available
+    if exist('figureWait','var') && ishandle(figureWait)
+        waitbar(i/samples,figureWait,['calculate modulated dose for ' pln.propHeterogeneity.sampling.mode ': Sample ' num2str(i+1) '/' num2str(samples)]);
+    end
+
 end
 
 if ~calcExternal
     % Calculate standard deviation between samples
     resultGUI.physicalDose_std = pln.propHeterogeneity.calcSampleStd(data,resultGUI.physicalDose);
+end
+
+% Close Waitbar
+if exist('figureWait','var') && ishandle(figureWait)
+    delete(figureWait);
 end
 
 % Change loglevel back to default;

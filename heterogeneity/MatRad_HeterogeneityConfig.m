@@ -409,23 +409,25 @@ classdef MatRad_HeterogeneityConfig < handle
             end
 
             % Handle RBE models if available
-            if accumulateRBE && isfield(resultGUI_mod,'RBE_model') && ~isempty(resultGUI_mod.RBE_model)
-                RBE_model = cell(1,length(resultGUI_mod.RBE_model)+1);
-                for i = 1:length(resultGUI_mod.RBE_model)
-                    RBE_model{i+1} = ['_' resultGUI_mod.RBE_model{i}];
+            if accumulateRBE
+                if isfield(resultGUI_mod,'RBE_model')
+                    RBE_model = cell(1,length(resultGUI_mod.RBE_model)+1);
+                    for i = 1:length(resultGUI_mod.RBE_model)
+                        RBE_model{i+1} = ['_' resultGUI_mod.RBE_model{i}];
+                    end
+                else
+                    RBE_model = {''};
                 end
-            else
-                RBE_model = {''};
             end
 
             % Allocate empty dose fields if resultGUI is empty
             if isempty(fieldnames(resultGUI))
                 for i = 1:length(beamInfo)
-                    resultGUI.(['physicalDose' beamInfo(1).suffix]) = zeros(size(resultGUI_mod.physicalDose));
+                    resultGUI.(['physicalDose' beamInfo(i).suffix]) = zeros(size(resultGUI_mod.physicalDose));
 
                     if accumulateRBE
                         for j = 1:length(RBE_model)
-                            resultGUI.(['RBExD' RBE_model{j} beamInfo(1).suffix]) = zeros(size(resultGUI_mod.physicalDose));
+                            resultGUI.(['RBExD' RBE_model{j} beamInfo(i).suffix]) = zeros(size(resultGUI_mod.physicalDose));
                         end
                     end
                 end
@@ -433,14 +435,14 @@ classdef MatRad_HeterogeneityConfig < handle
 
             % Accumulate averaged physical Dose
             for i = 1:length(beamInfo)
-                resultGUI.(['physicalDose' beamInfo(1).suffix]) = resultGUI.(['physicalDose' beamInfo(1).suffix]) + resultGUI_mod.(['physicalDose' beamInfo(1).suffix]) / samples;
+                resultGUI.(['physicalDose' beamInfo(i).suffix]) = resultGUI.(['physicalDose' beamInfo(i).suffix]) + resultGUI_mod.(['physicalDose' beamInfo(i).suffix]) / samples;
             end
 
             % Accumulate averaged RBE weighted Dose
             if accumulateRBE
                 for i = 1:length(beamInfo)
                     for j = 1:length(RBE_model)
-                        resultGUI.(['RBExD' RBE_model{j} beamInfo(1).suffix]) = resultGUI.(['RBExD' RBE_model{j} beamInfo(1).suffix]) + resultGUI_mod.(['RBExD' RBE_model{j} beamInfo(1).suffix]) / samples;
+                        resultGUI.(['RBExD' RBE_model{j} beamInfo(i).suffix]) = resultGUI.(['RBExD' RBE_model{j} beamInfo(i).suffix]) + resultGUI_mod.(['RBExD' RBE_model{j} beamInfo(i).suffix]) / samples;
                     end
                 end
             end
