@@ -19,12 +19,10 @@ switch pln.propHeterogeneity.sampling.mode
         %         pln.propMC.materialConverter.densityCorrection = 'TOPAS2'; %'default','TOPAS1','TOPAS2'
         pln.propMC.materialConverter.HUSection = 'advanced'; %'default','advanced'
         pln.propMC.materialConverter.HUToMaterial = 'default'; %'default','simpleLung','advanced'
-        if ~isfield(pln.propMC.materialConverter,'addSection')
-            if strcmp(pln.propHeterogeneity.sampling.method,'poisson')
-                pln.propMC.materialConverter.addSection = 'poisson';
-            else
-                pln.propMC.materialConverter.addSection = 'sampledDensities'; %'none','lung','poisson','sampledDensities' (the last 2 only with modulation)
-            end
+        if strcmp(pln.propHeterogeneity.sampling.method,'poisson')
+            pln.propMC.materialConverter.addSection = 'poisson';
+        else
+            pln.propMC.materialConverter.addSection = 'sampledDensities'; %'none','lung','poisson','sampledDensities' (the last 2 only with modulation)
         end
 
         numHistories = pln.propMC.numHistories;
@@ -32,9 +30,7 @@ switch pln.propHeterogeneity.sampling.mode
     case 'MCsquare'
         calcExternal = false;
         numHistories = pln.propMC.numHistories;
-        if ~isfield(pln.propMC,'materialConverter') || ~isfield(pln.propMC.materialConverter,'addSection')
-            pln.propMC.materialConverter.addSection = 'sampledDensities';
-        end
+        pln.propMC.materialConverter.addSection = 'sampledDensities';
     case 'matRad'
         calcExternal = false;
     otherwise
@@ -52,7 +48,7 @@ end
 %         if strcmp(modulation,'poisson')
 %             pln.propMC.materialConverter = 'HUToWaterSchneider_mod';
 %         else
-%             if ~isfield(pln.propMC,'materialConverter')
+%             if ~isprop(pln.propMC,'materialConverter')
 %                 pln.propMC.materialConverter = 'HUToWaterSchneider';
 %             end
 %         end

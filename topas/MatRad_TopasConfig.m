@@ -18,7 +18,7 @@ classdef MatRad_TopasConfig < handle
     % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     properties
         % This parameter can be overwritten through MatRad_Config default parameters
-        numHistories = 1e6; %Number of histories to compute 
+        numHistories = 1e6; %Number of histories to compute
 
         topasExecCommand; %Defaults will be set during construction according to TOPAS installation instructions and used system
 
@@ -28,7 +28,7 @@ classdef MatRad_TopasConfig < handle
         workingDir; %working directory for the simulation
 
         engine = 'TOPAS'; %parameter for continuity
-        
+
         label = 'matRad_plan';
 
         %Simulation parameters
@@ -36,7 +36,7 @@ classdef MatRad_TopasConfig < handle
         numOfRuns = 5; %Default number of runs / batches
         modeHistories = 'num'; %'frac';
         fracHistories = 1e-4; %Fraction of histories to compute
-        
+
         numParticlesPerHistory = 1e6;
         verbosity = struct( 'timefeatures',0,...
             'cputime',true,...
@@ -218,29 +218,24 @@ classdef MatRad_TopasConfig < handle
                     end
                 end
 
-                if all(isfield(pln.propMC,{'AlphaX','BetaX'}))
-                    obj.bioParam.AlphaX = pln.propMC.AlphaX;
-                    obj.bioParam.BetaX = pln.propMC.BetaX;
-                else
-                    for i = 1:length(pln.bioParam.AvailableAlphaXBetaX)
-                        if contains(pln.bioParam.AvailableAlphaXBetaX{i,2},'default')
-                            break
-                        end
+                % Get alpha beta parameters from bioParam struct
+                for i = 1:length(pln.bioParam.AvailableAlphaXBetaX)
+                    if contains(pln.bioParam.AvailableAlphaXBetaX{i,2},'default')
+                        break
                     end
-                    obj.bioParam.AlphaX = pln.bioParam.AvailableAlphaXBetaX{5,1}(1);
-                    obj.bioParam.BetaX = pln.bioParam.AvailableAlphaXBetaX{5,1}(2);
                 end
+                obj.bioParam.AlphaX = pln.bioParam.AvailableAlphaXBetaX{5,1}(1);
+                obj.bioParam.BetaX = pln.bioParam.AvailableAlphaXBetaX{5,1}(2);
+
             end
             if obj.scorer.LET
                 obj.scorer.doseToMedium = true;
             end
 
             % Set material converter properties
-            if isfield(pln,'propMC') && isfield(pln.propMC,'materialConverter')
-                fnames = fieldnames(pln.propMC.materialConverter);
-                for f = 1:length(fnames)
-                    obj.materialConverter.(fnames{f}) = pln.propMC.materialConverter.(fnames{f});
-                end
+            fnames = fieldnames(pln.propMC.materialConverter);
+            for f = 1:length(fnames)
+                obj.materialConverter.(fnames{f}) = pln.propMC.materialConverter.(fnames{f});
             end
 
             % create TOPAS working directory if not set
@@ -714,7 +709,7 @@ classdef MatRad_TopasConfig < handle
         function dataOut = readBinCsvData(~,genFullFile)
 
             matRad_cfg = MatRad_Config.instance(); %Instance of matRad configuration class
-            
+
             if contains(genFullFile,'.csv')
                 % Read csv header file to get cubeDim and number of scorers automatically
                 fid = fopen(genFullFile);
@@ -757,7 +752,7 @@ classdef MatRad_TopasConfig < handle
         end
 
         function dij = prepareDij(obj,topasCubes)
-           
+
             % Load ctScen variable
             ctScen = obj.MCparam.numOfCtScen;
 
@@ -874,21 +869,21 @@ classdef MatRad_TopasConfig < handle
                             end
                             % Handle RBE-related quantities (not multiplied by sum(w)!)
                         elseif contains(topasCubesTallies{j},'alpha','IgnoreCase',true)
-                                modelName = strsplit(topasCubesTallies{j},'_');
-                                modelName = modelName{end};
-                                if isfield(topasCubes,[topasCubesTallies{j} '_ray' num2str(dij.rayNum(d)) '_bixel' num2str(dij.bixelNum(d)) '_beam' num2str(dij.beamNum(d))])
-                                    dij.(['mAlphaDose_' modelName]){ctScen,1}(:,d) = reshape(topasCubes.([topasCubesTallies{j} '_ray' num2str(dij.rayNum(d)) '_bixel' num2str(dij.bixelNum(d)) '_beam' num2str(dij.beamNum(d))]),[],1) .* dij.physicalDose{ctScen,1}(:,d);
-                                end
-                       elseif contains(topasCubesTallies{j},'beta','IgnoreCase',true)
-                                modelName = strsplit(topasCubesTallies{j},'_');
-                                modelName = modelName{end};
-                                if isfield(topasCubes,[topasCubesTallies{j} '_ray' num2str(dij.rayNum(d)) '_bixel' num2str(dij.bixelNum(d)) '_beam' num2str(dij.beamNum(d))])
-                                    dij.(['mSqrtBetaDose_' modelName]){ctScen,1}(:,d) = sqrt(reshape(topasCubes.([topasCubesTallies{j} '_ray' num2str(dij.rayNum(d)) '_bixel' num2str(dij.bixelNum(d)) '_beam' num2str(dij.beamNum(d))]),[],1)) .* dij.physicalDose{ctScen,1}(:,d);
-                                end
+                            modelName = strsplit(topasCubesTallies{j},'_');
+                            modelName = modelName{end};
+                            if isfield(topasCubes,[topasCubesTallies{j} '_ray' num2str(dij.rayNum(d)) '_bixel' num2str(dij.bixelNum(d)) '_beam' num2str(dij.beamNum(d))])
+                                dij.(['mAlphaDose_' modelName]){ctScen,1}(:,d) = reshape(topasCubes.([topasCubesTallies{j} '_ray' num2str(dij.rayNum(d)) '_bixel' num2str(dij.bixelNum(d)) '_beam' num2str(dij.beamNum(d))]),[],1) .* dij.physicalDose{ctScen,1}(:,d);
+                            end
+                        elseif contains(topasCubesTallies{j},'beta','IgnoreCase',true)
+                            modelName = strsplit(topasCubesTallies{j},'_');
+                            modelName = modelName{end};
+                            if isfield(topasCubes,[topasCubesTallies{j} '_ray' num2str(dij.rayNum(d)) '_bixel' num2str(dij.bixelNum(d)) '_beam' num2str(dij.beamNum(d))])
+                                dij.(['mSqrtBetaDose_' modelName]){ctScen,1}(:,d) = sqrt(reshape(topasCubes.([topasCubesTallies{j} '_ray' num2str(dij.rayNum(d)) '_bixel' num2str(dij.bixelNum(d)) '_beam' num2str(dij.beamNum(d))]),[],1)) .* dij.physicalDose{ctScen,1}(:,d);
+                            end
                         elseif contains(topasCubesTallies{j},'LET','IgnoreCase',true)
-                                if isfield(topasCubes,[topasCubesTallies{j} '_ray' num2str(dij.rayNum(d)) '_bixel' num2str(dij.bixelNum(d)) '_beam' num2str(dij.beamNum(d))])
-                                    dij.mLETDose{ctScen,1}(:,d) = reshape(topasCubes.([topasCubesTallies{j} '_ray' num2str(dij.rayNum(d)) '_bixel' num2str(dij.bixelNum(d)) '_beam' num2str(dij.beamNum(d))]),[],1) .* dij.physicalDose{ctScen,1}(:,d);
-                                end
+                            if isfield(topasCubes,[topasCubesTallies{j} '_ray' num2str(dij.rayNum(d)) '_bixel' num2str(dij.bixelNum(d)) '_beam' num2str(dij.beamNum(d))])
+                                dij.mLETDose{ctScen,1}(:,d) = reshape(topasCubes.([topasCubesTallies{j} '_ray' num2str(dij.rayNum(d)) '_bixel' num2str(dij.bixelNum(d)) '_beam' num2str(dij.beamNum(d))]),[],1) .* dij.physicalDose{ctScen,1}(:,d);
+                            end
                         else
                             matRad_cfg.dispError('Postprocessing error: Tallies handles incorrectly')
                         end
@@ -1605,7 +1600,7 @@ classdef MatRad_TopasConfig < handle
                     obj.writeRangeShifter(fileID,raShis(r),sourceToNozzleDistance);
                 end
 
-                % Select and write beam profile 
+                % Select and write beam profile
                 switch obj.beamProfile
                     case 'biGaussian'
                         TOPAS_beamSetup = fileread('TOPAS_beamSetup_biGaussian.txt.in');
@@ -1706,10 +1701,6 @@ classdef MatRad_TopasConfig < handle
                 permutation = [2 1 3];
             end
 
-            if isfield(pln.propMC,'materialConverter') && isfield(pln.propMC.materialConverter,'mode')
-                obj.materialConverter.mode = pln.propMC.materialConverter.mode;
-            end
-
             % Bookkeeping
             obj.MCparam.imageCubeOrdering = obj.arrayOrdering;
             obj.MCparam.imageCubeConversionType = obj.materialConverter.mode;
@@ -1779,7 +1770,7 @@ classdef MatRad_TopasConfig < handle
                     fclose(fID);
                     cube = huCube;
 
-                
+
                 case 'HUToWaterSchneider' % Schneider converter
                     rspHlut = matRad_loadHLUT(ct,pln);
                     try

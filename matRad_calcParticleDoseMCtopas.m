@@ -162,7 +162,7 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                     for beamIx = 1:numel(stf)
                         for runIx = 1:pln.propMC.numOfRuns
                             fname = sprintf('%s_field%d_run%d',pln.propMC.label,beamIx,runIx);
-                            if isfield(pln.propMC,'verbosity') && strcmp(pln.propMC.verbosity,'full')
+                            if strcmp(pln.propMC.verbosity,'full')
                                 topasCall = sprintf('%s %s.txt',pln.propMC.topasExecCommand,fname);
                             else
                                 topasCall = sprintf('%s %s.txt > %s.out > %s.log',pln.propMC.topasExecCommand,fname,fname,fname);
