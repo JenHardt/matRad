@@ -5,17 +5,19 @@ end
 if nargin < 5
     testing = false;
 end
+if ~isfield(pln,'propStf') || ~isfield(pln.propStf,'couchAngles')
+    pln.propStf.gantryAngles = 0;
+    pln.propStf.couchAngles = 0;
+end
 if testing
-    if ~isfield(pln,'propStf') || ~isfield(pln.propStf,'couchAngles')
-        pln.propStf.gantryAngles = 0;
-        pln.propStf.couchAngles = 0;
-    end
+
     pln.propStf.bixelWidth = 5;
 else
     pln.propStf.bixelWidth = 3;
 end
 pln.propStf.numOfBeams = size(pln.propStf.gantryAngles,2);
 pln.propStf.isoCenter = ones(pln.propStf.numOfBeams,1)*matRad_getIsoCenter(cst,ct);
+pln.propStf.longitudinalSpotSpacing = 1;
 
 pln.numOfFractions = 30;
 
@@ -37,7 +39,7 @@ s = split(baseData,'_');
 pln.radiationMode   = s{1};
 pln.machine = strjoin(s(2:end),'_');
 
-if contains(RBE_model,{'WED','MCN','LEM','RBE'})
+if contains(RBE_model,{'WED','MCN','LEM','RBE','HEL'})
     quantityOpt                 = 'RBExD';
     pln.propOpt.bioOptimization = 'RBExD';
 else
