@@ -7,12 +7,16 @@ matRad_cfg =  MatRad_Config.instance();
 if isfield(pln,'propMC')
     pln = matRad_cfg.getDefaultClass(pln,'propMC');
 end
-matRad_cfg.getDefaultClass(pln,'propHeterogeneity');
+pln.propHeterogeneity = MatRad_HeterogeneityConfig();
 
 % load default parameters in case they haven't been set yet
 pln = matRad_cfg.getDefaultProperties(pln,'propDoseCalc');
 
-samples = pln.propHeterogeneity.sampling_numOfSamples;
+% Get number of samples from class
+samples = pln.propHeterogeneity.sampling.numOfSamples;
+
+% Output current mode
+matRad_cfg.dispInfo(['Calculating modulated dose in mode: ' pln.propHeterogeneity.sampling.mode]);
 
 switch pln.propHeterogeneity.sampling.mode
     case 'TOPAS'
