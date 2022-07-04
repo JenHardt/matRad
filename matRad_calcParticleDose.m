@@ -48,6 +48,7 @@ pln = matRad_cfg.getDefaultProperties(pln,{'propDoseCalc'});
 
 if isfield(pln,'propHeterogeneity') && pln.propHeterogeneity.calcHetero
     pln.propHeterogeneity = MatRad_HeterogeneityConfig();
+    pln.propHeterogeneity.bioOpt = pln.bioParam.bioOpt;
     matRad_cfg.dispInfo(['Modulation power set to Pmod = ' num2str(pln.propHeterogeneity.modPower) ' µm.\n']);
     cstOriginal = cst;
 end
@@ -57,7 +58,7 @@ matRad_calcDoseInit;
 
 % initialize lung heterogeneity correction and turn off if necessary files are missing
 if isfield(pln,'propHeterogeneity') && pln.propHeterogeneity.calcHetero
-    matRad_cfg.dispInfo('Heterogeneity correction enablfed. \n');
+    matRad_cfg.dispInfo('Heterogeneity correction enabled. \n');
     heteroCST = false;
     for i = 1:length(cst(:,1)) % scan cst for segmentation flagged for correction
         if isfield(cst{i,5},'HeterogeneityCorrection')
@@ -94,7 +95,7 @@ if isfield(pln,'propHeterogeneity') && pln.propHeterogeneity.calcHetero
     end
 end
 
-if isfield(pln,'propHeterogeneity') && pln.propHeterogeneity.calcHetero && (pln.propHeterogeneity.useOriginalDepths || ~pln.propHeterogeneity.calcHetero)
+if isfield(pln,'propHeterogeneity') && pln.propHeterogeneity.calcHetero && pln.propHeterogeneity.useOriginalDepths
     machine.data = matRad_overrideBaseData(machine.data);
 end
 

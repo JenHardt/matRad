@@ -24,7 +24,8 @@ classdef MatRad_HeterogeneityConfig < handle
         % Heterogeneity correction can be turned off with setting this flag to 'false'
         calcHetero = true;
 
-        useOriginalDepths = true;
+        useOriginalDepths = false;
+        bioOpt = false;
 
         modulateLET = true;
         modulateBioDose = true;
