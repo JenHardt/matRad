@@ -182,7 +182,7 @@ if propHeterogeneity.bioOpt
         end
 
         % LET convolution
-        if propHeterogeneity.modulateLET
+        if propHeterogeneity.modulateLET && isfield(baseData,'LET')
 
             % LET extrapolation to finer grid
             LET = matRad_interp1(bixel.heteroCorr.coarseGrid,baseData.LET,bixel.heteroCorr.fineGrid,'extrap');

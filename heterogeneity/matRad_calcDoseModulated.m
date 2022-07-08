@@ -81,10 +81,10 @@ matRad_cfg.logLevel = 1;
 switch pln.propHeterogeneity.sampling.mode
     case 'TOPAS'
         topasConfig = MatRad_TopasConfig();
-        pln.propMC.proton_engine = 'TOPAS';
+        pln.propMC.engine = 'TOPAS';
         [ctR,cstR,stfR] = topasConfig.resampleGrid(ct,cst,pln,stf);
     case 'MCsquare'
-        pln.propMC.proton_engine = 'MCsquare';
+        pln.propMC.engine = 'MCsquare';
         ctR = ct;
         cstR = cst;
         stfR = stf;

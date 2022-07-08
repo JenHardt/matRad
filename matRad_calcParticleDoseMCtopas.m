@@ -74,6 +74,7 @@ end
 
 % set nested folder structure if external calculation is turned on (this will put new simulations in subfolders)
 if pln.propMC.externalCalculation
+    pln.propMC.workingDir = [pln.propMC.thisFolder filesep 'MCrun' filesep];
     if isfield(pln,'patientID')
         pln.propMC.workingDir = [pln.propMC.workingDir pln.radiationMode filesep pln.patientID filesep pln.patientID '_'];
     end
@@ -205,11 +206,11 @@ for shiftScen = 1:pln.multScen.totNumShiftScen
                         end
 
                     end
-
-                    % revert back to original directory
-                    cd(currDir);
-               
                 end
+
+                % revert back to original directory
+                cd(currDir);
+
             end
         end
     end
