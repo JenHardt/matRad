@@ -31,6 +31,8 @@ classdef matRad_BackProjection < handle
         scenarios    = 1        %Scenario indices to evaluate (used for 4D & robust/stochastic optimization)
         scenarioProb = 1        %Probability associated with scenario (for stochastic optimization)
         nominalCtScenarios = 1; %nominal ct scenario (no shift, no range error) indices to evaluate (used for 4D & robust/stochastic optimization, when at least one cst structure does not have robustness)
+        totFrac; %total number of fraction
+        calcTotalDose = false;  %flag to indicate if total dose should be calculated
     end
 
     
@@ -88,6 +90,9 @@ classdef matRad_BackProjection < handle
         function d = computeResult(obj,dij,w)
             d = cell(size(dij.physicalDose));
             d(obj.scenarios) = arrayfun(@(scen) computeSingleScenario(obj,dij,scen,w),obj.scenarios,'UniformOutput',false);
+            if obj.calcTotalDose 
+                d = cellfun(@(x) x.*obj.totFrac,d ,'UniformOutput',false) ;  
+            end
         end
         
         function [dExp,dOmegaV] = computeResultProb(obj,dij,w)
@@ -104,7 +109,10 @@ classdef matRad_BackProjection < handle
         
         function wGrad = projectGradient(obj,dij,doseGrad,w)
             wGrad = cell(size(dij.physicalDose));
-            wGrad(obj.scenarios) = arrayfun(@(scen) projectSingleScenarioGradient(obj,dij,doseGrad,scen,w),obj.scenarios,'UniformOutput',false);         
+            wGrad(obj.scenarios) = arrayfun(@(scen) projectSingleScenarioGradient(obj,dij,doseGrad,scen,w),obj.scenarios,'UniformOutput',false);
+            if obj.calcTotalDose 
+                wGrad = cellfun(@(x) x./obj.totFrac, wGrad ,'UniformOutput',false) ;  
+            end               
         end
         
         function wGrad = projectGradientProb(obj,dij,dExpGrad,dOmegaVgrad,w)

@@ -194,11 +194,13 @@ classdef MatRad_Config < handle
             obj.propDoseCalc.defaultNumHistoriesPerBeamlet = 2e4;
             obj.propDoseCalc.defaultNumHistoriesDirect = 1e6;
             obj.propDoseCalc.defaultOutputMCvariance = true;
-                        
+            
+            % Optimization Options
             obj.propOpt.defaultMaxIter = 500;
             obj.propOpt.defaultRunDAO = 0;
             obj.propOpt.defaultRunSequencing = 0;
             obj.propOpt.defaultClearUnusedVoxels = false;
+            obj.propOpt.defaultCalcTotalDose     = false;
             
             %deprecated monte carlo options
             obj.propMC.ompMC_defaultHistories = 1e6;
@@ -267,7 +269,9 @@ classdef MatRad_Config < handle
             obj.propDoseCalc.defaultNumHistoriesDirect = 100;
             obj.propDoseCalc.defaultOutputMCvariance = true;
 
+            % Optimization Options
             obj.propOpt.defaultMaxIter = 10;
+            obj.propOpt.defaultCalcTotalDose     = false;
             
             %Deprecated Monte Carlo options
             obj.propMC.ompMC_defaultHistories = 100;

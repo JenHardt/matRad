@@ -47,6 +47,8 @@ if ~exist('refGy', 'var') || isempty(refGy)
     refGy = floor(linspace(0,max(doseCube(:)),6)*10)/10;
 end
 
+pln = matRad_cfg.getDefaultProperties(pln,{'propOpt'});
+
     
 % calculate QIs per VOI
 qi = struct;
@@ -112,7 +114,11 @@ for runVoi = 1:size(cst,1)
                
                %if strcmp(cst{runVoi,6}(runObjective).type,'square deviation') > 0 || strcmp(cst{runVoi,6}(runObjective).type,'square underdosing') > 0
                if isa(obj,'DoseObjectives.matRad_SquaredDeviation') || isa(obj,'DoseObjectives.matRad_SquaredUnderdosing')
-                   referenceDose = (min(obj.getDoseParameters(),referenceDose))/pln.numOfFractions;
+                    if pln.propOpt.calcTotalDose
+                        referenceDose = (min(obj.getDoseParameters(),referenceDose))/1;
+                    else
+                    referenceDose = (min(obj.getDoseParameters(),referenceDose))/pln.numOfFractions;
+                    end
                end            
             end
 

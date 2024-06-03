@@ -37,6 +37,9 @@ matRad_cfg = MatRad_Config.instance();
 % consider VOI priorities
 cst  = matRad_setOverlapPriorities(cst);
 
+% load default parameters in case they haven't been set yet
+pln = matRad_cfg.getDefaultProperties(pln,{'propOpt'});
+
 % check & adjust objectives and constraints internally for fractionation
 for i = 1:size(cst,1)
     %Compatibility Layer for old objective format
@@ -58,7 +61,11 @@ for i = 1:size(cst,1)
             end
         end
 
-        obj = obj.setDoseParameters(obj.getDoseParameters()/pln.numOfFractions);
+        if pln.propOpt.calcTotalDose
+            obj = obj.setDoseParameters(obj.getDoseParameters());
+        else
+            obj = obj.setDoseParameters(obj.getDoseParameters()/pln.numOfFractions);
+        end
 
         cst{i,6}{j} = obj;
     end
@@ -102,6 +109,11 @@ for i = 1:size(cst,1)
         ixTarget   = [ixTarget i*ones(1,length(fDoses))];
     end
 end
+
+if pln.propOpt.calcTotalDose
+    doseTarget = doseTarget ./pln.numOfFractions;
+end
+
 [doseTarget,i] = max(doseTarget);
 ixTarget       = ixTarget(i);
 wOnes          = ones(dij.totalNumOfBixels,1);
@@ -147,7 +159,11 @@ elseif pln.bioParam.bioOpt
 
         for j = 1:size(cst{i,6},2)
             % check if prescribed doses are in a valid domain
-            if any(cst{i,6}{j}.getDoseParameters() > 5) && isequal(cst{i,3},'TARGET')
+            ntmp = 1;
+            if pln.propOpt.calcTotalDose
+                ntmp = pln.numOfFractions;
+            end
+            if any(cst{i,6}{j}.getDoseParameters()./ntmp > 5) && isequal(cst{i,3},'TARGET')
                 matRad_cfg.dispError('Reference dose > 5 Gy[RBE] for target. Biological optimization outside the valid domain of the base data. Reduce dose prescription or use more fractions.\n');
             end
 
@@ -269,6 +285,10 @@ backProjection.scenarios    = ixForOpt;
 backProjection.scenarioProb = pln.multScen.scenProb;
 backProjection.nominalCtScenarios = linIxDIJ_nominalCT;
 %backProjection.scenDim      = pln.multScen
+if pln.propOpt.calcTotalDose
+    backProjection.calcTotalDose = true;
+    backProjection.totFrac= pln.numOfFractions;
+end
 
 optiProb = matRad_OptimizationProblem(backProjection);
 optiProb.quantityOpt = pln.bioParam.quantityOpt;
