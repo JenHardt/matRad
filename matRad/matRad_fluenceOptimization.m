@@ -1,4 +1,4 @@
-function [resultGUI,optimizer] = matRad_fluenceOptimization(dij,cst,pln,wInit)
+function [resultGUI,optimizer] = matRad_fluenceOptimization(dij,cst,pln,stf,wInit)
 % matRad inverse planning wrapper function
 %
 % call
@@ -407,7 +407,18 @@ resultGUI.wUnsequenced = wOpt;
 resultGUI.usedOptimizer = optimizer;
 resultGUI.info = info;
 
-%Robust quantities
+% calc 4D
+%stfGenerator = matRad_StfGeneratorBase.getGeneratorFromPln(pln);
+%stf = stfGenerator.writeSequencingTime(stf,wOpt);
+%stf = stfGenerator.writeStequencingPhase(stf,pln.multScen.numOfCtScen, pln.multScen.motionPeriod);
+%seqInfo = [stf(:).sequencingInfo];
+%totalPhaseMatrix  = vertcat(seqInfo.phaseMatrix);
+%resultGUI.phaseMatrix = totalPhaseMatrix;
+%if pln.multScen.numOfCtScen>1
+%    resultGUI = matRad_calc4dDose(dij, pln,resultGUI, totalPhaseMatrix);
+%end
+
+%Robust quantitie
 if pln.multScen.totNumScen > 1
     for i = 1:pln.multScen.totNumScen
         scenSubIx = pln.multScen.linearMask(i,:);
@@ -415,6 +426,5 @@ if pln.multScen.totNumScen > 1
         resultGUI = matRad_appendResultGUI(resultGUI,resultGUItmp,false,sprintf('scen%d',i));
     end
 end
-
 % unblock mex files
 clear mex

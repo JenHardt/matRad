@@ -44,8 +44,8 @@ pln.multScen = matRad_multScen(ct, 'nomScen');
 % beam geometry settings
 pln.propStf.bixelWidth      = 5; % [mm] / also corresponds to lateral spot spacing for particles
 pln.propStf.longitudinalSpotSpacing = 5;      % only relevant for HIT machine, not generic
-pln.propStf.gantryAngles    = [90]; 
-pln.propStf.couchAngles     = [0]; 
+pln.propStf.gantryAngles    = [90,270]; 
+pln.propStf.couchAngles     = [0,0]; 
 pln.propStf.numOfBeams      = numel(pln.propStf.gantryAngles);
 pln.propStf.isoCenter       = ones(pln.propStf.numOfBeams,1) * matRad_getIsoCenter(cst,ct,0);
 
@@ -60,20 +60,14 @@ dij = matRad_calcParticleDose(ct,stf,pln,cst);
 
 %% 
 % inverse planning for imrt on a static CT
-resultGUI = matRad_fluenceOptimization(dij,cst,pln);
-
-%% 
-% post processing
-% This step is necessary to remove beam spots with too few particles that
-% cannot not be delivered, dose is recalculated accordingly
-resultGUI = matRad_postprocessing(resultGUI, dij, pln, cst, stf) ; 
+resultGUI = matRad_fluenceOptimization(dij,cst,pln,stf);
 
 %%
-% calc 4D dose
+% accumulate 4D dose
 % make sure that the correct pln, dij and stf are loeaded in the workspace
-[resultGUI, timeSequence] = matRad_calc4dDose(ct, pln, dij, stf, cst, resultGUI); 
+resultGUI = matRad_acc4dDose( dij, pln, ct, cst,resultGUI, 'DDM');
 
-% plot the result in comparison to the static dose
+%% plot the result in comparison to the static dose
 slice = matRad_world2cubeIndex(pln.propStf.isoCenter(1,:),ct);
 slice = slice(3);
 

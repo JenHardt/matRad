@@ -84,7 +84,7 @@ dij = matRad_calcDoseInfluence(ct,cst,stf,pln);
 % treatment. Once the optimization has finished, trigger once the GUI to
 % visualize the optimized dose cubes.
 resultGUI = matRad_fluenceOptimization(dij,cst,pln);
-matRadGUI;
+%matRadGUI;
 
 %% Sequencing
 % This is a multileaf collimator leaf sequencing algorithm that is used in 
