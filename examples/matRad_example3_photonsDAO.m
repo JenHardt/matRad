@@ -2,7 +2,7 @@
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% Copyright 2017 the matRad development team.
+% Copyright 2017-2026 the matRad development team.
 %
 % This file is part of the matRad project. It is subject to the license
 % terms in the LICENSE file found in the top-level directory of this
@@ -37,8 +37,8 @@ pln.radiationMode   = 'photons';   % either photons / protons / carbon
 pln.machine         = 'Generic';
 pln.numOfFractions  = 30;
 
-pln.propStf.gantryAngles    = [0:90:359];
-pln.propStf.couchAngles     = [0 0 0 0];
+pln.propStf.gantryAngles    = [0:72:359];
+pln.propStf.couchAngles     = [0 0 0 0 0];
 pln.propStf.bixelWidth      = 5;
 pln.propStf.isoCenter       = matRad_getIsoCenter(cst, ct, 0);
 
@@ -53,9 +53,9 @@ pln.propDoseCalc.doseGrid.resolution.z = 5; % [mm]
 % We can also use other solver for optimization than IPOPT. matRad
 % currently supports fmincon from the MATLAB Optimization Toolbox. First we
 % check if the fmincon-Solver is available, and if it es, we set in in the
-% pln.propOpt.optimizer vairable. Otherwise wie set to the default
+% pln.propOpt.optimizer variable. Otherwise wie set to the default
 % optimizer 'IPOPT'
-if matRad_OptimizerFmincon.IsAvailable()
+if matRad_OptimizerFmincon.isAvailable()
     pln.propOpt.optimizer = 'fmincon';
 else
     pln.propOpt.optimizer = 'IPOPT';
@@ -78,7 +78,7 @@ dij = matRad_calcDoseInfluence(ct, cst, stf, pln);
 % treatment. Once the optimization has finished, trigger once the GUI to
 % visualize the optimized dose cubes.
 resultGUI = matRad_fluenceOptimization(dij, cst, pln);
-% matRadGUI;
+matRadGUI;
 
 %% Sequencing
 % This is a multileaf collimator leaf sequencing algorithm that is used in

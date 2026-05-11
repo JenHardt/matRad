@@ -2,13 +2,13 @@
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% Copyright 2017 the matRad development team.
-%
-% This file is part of the matRad project. It is subject to the license
-% terms in the LICENSE file found in the top-level directory of this
-% distribution and at https://github.com/e0404/matRad/LICENSE.md. No part
-% of the matRad project, including this file, may be copied, modified,
-% propagated, or distributed except according to the terms contained in the
+% Copyright 2017-2026 the matRad development team.
+% 
+% This file is part of the matRad project. It is subject to the license 
+% terms in the LICENSE file found in the top-level directory of this 
+% distribution and at https://github.com/e0404/matRad/LICENSE.md. No part 
+% of the matRad project, including this file, may be copied, modified, 
+% propagated, or distributed except according to the terms contained in the 
 % LICENSE file.
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -305,6 +305,6 @@ if matRad_cfg.isMatlab
     disp(dvhTableDiff);
 
     %%% Save the results to CSV file
-    % file_path_dvh_diff = "YOUR PATH"
-    % writetable(dvh_table_diff, file_path_dvh_diff);
+    %file_path_dvh_diff = "YOUR PATH"
+    %writetable(dvh_table_diff, file_path_dvh_diff);
 end

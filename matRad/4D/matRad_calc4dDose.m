@@ -2,7 +2,7 @@ function resultGUI = matRad_calc4dDose(dij, pln, stf, resultGUI, totalPhaseMatri
 % wrapper for the whole 4D dose calculation pipeline and calculated dose
 % accumulation
 %
-% call
+% call:
 %   ct = matRad_calc4dDose(ct, pln, dij, stf, cst, resultGUI)
 %
 % input
@@ -17,7 +17,7 @@ function resultGUI = matRad_calc4dDose(dij, pln, stf, resultGUI, totalPhaseMatri
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% Copyright 2025 the matRad development team.
+% Copyright 2018-2026 the matRad development team.
 %
 % This file is part of the matRad project. It is subject to the license
 % terms in the LICENSE file found in the top-level directory of this

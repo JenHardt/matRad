@@ -2,17 +2,17 @@ function [pln, stf] = matRad_aperture2collimation(pln, stf, sequencing, aperture
 % matRad function to convert sequencing information / aperture information
 % into collimation information in pln and stf for field-based dose
 % calculation
-%
-% call
+% 
+% call:
 %   [pln,stf] = matRad_aperture2collimation(pln,stf,sequencing,apertureInfo)
 %
-% input
+% input:
 %   pln:            pln file used to generate the sequenced plan
 %   stf:            stf file used to generate the sequenced plan
 %   sequencing:     sequencing information (from resultGUI)
 %   apertureInfo:   apertureInfo (from resultGUI)
 %
-% output
+% output:
 %   pln:            matRad pln struct with collimation information
 %   stf:            matRad stf struct with shapes instead of beamlets
 %
@@ -21,7 +21,7 @@ function [pln, stf] = matRad_aperture2collimation(pln, stf, sequencing, aperture
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% Copyright 2022 the matRad development team.
+% Copyright 2022-2026 the matRad development team.
 % Author: wahln
 %
 % This file is part of the matRad project. It is subject to the license

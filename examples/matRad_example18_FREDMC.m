@@ -2,7 +2,7 @@
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% Copyright 2023 the matRad development team.
+% Copyright 2023-2026 the matRad development team.
 %
 % This file is part of the matRad project. It is subject to the license
 % terms in the LICENSE file found in the top-level directory of this
@@ -86,4 +86,4 @@ pln.propDoseCalc.scorers     = {'Dose', 'LETd'};
 resultGUI_recalc = matRad_calcDoseForward(ct, cst, stf, pln, wOptimized);
 
 %% Compare physical dose and RBExD distributions
-matRad_compareDose(resultGUI_recalc.physicalDose, resultGUI_recalc.RBExDose, ct, cst, [], 'on');
+matRad_compareDose(resultGUI_recalc.physicalDose, resultGUI_recalc.RBExDose,ct,cst,[],'on');

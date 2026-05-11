@@ -1,17 +1,17 @@
 function resultGUI = matRad_sequencing(resultGUI, stf, pln, dij, visMode)
 % matRad inverse planning wrapper function
-%
-% call
+% 
+% call:
 %   resultGUI = matRad_sequencing(resultGUI,stf,dij,pln)
 %
-% input
+% input:
 %   dij:        matRad dij struct
 %   stf:        matRad stf struct
 %   pln:        matRad pln struct
 %   resultGUI:  struct containing optimized fluence vector, dose, and (for
 %               biological optimization) RBE-weighted dose etc.
 %
-% output
+% output:
 %   resultGUI:  struct containing optimized fluence vector, dose, and (for
 %               biological optimization) RBE-weighted dose etc.
 %
@@ -20,13 +20,13 @@ function resultGUI = matRad_sequencing(resultGUI, stf, pln, dij, visMode)
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% Copyright 2016 the matRad development team.
-%
-% This file is part of the matRad project. It is subject to the license
-% terms in the LICENSE file found in the top-level directory of this
-% distribution and at https://github.com/e0404/matRad/LICENSE.md. No part
-% of the matRad project, including this file, may be copied, modified,
-% propagated, or distributed except according to the terms contained in the
+% Copyright 2016-2026 the matRad development team.
+% 
+% This file is part of the matRad project. It is subject to the license 
+% terms in the LICENSE file found in the top-level directory of this 
+% distribution and at https://github.com/e0404/matRad/LICENSE.md. No part 
+% of the matRad project, including this file, may be copied, modified, 
+% propagated, or distributed except according to the terms contained in the 
 % LICENSE file.
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
