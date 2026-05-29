@@ -1,14 +1,14 @@
 function sliceIndices = matRad_findRtssContourSlicesInCt(contourZ, ct)
 % matRad function to find CT slices compatible with an RTSTRUCT contour plane
 %
-% call
+% call:
 %   sliceIndices = matRad_findRtssContourSlicesInCt(contourZ,ct)
 %
-% input
+% input:
 %   contourZ:       z-position of one RTSTRUCT contour plane in mm
 %   ct:             matRad ct struct with z-axis and DICOM slice thickness
 %
-% output
+% output:
 %   sliceIndices:   row vector with CT slice indices intersected by the
 %                   physical slice slab of the contour plane
 %
@@ -28,14 +28,14 @@ function sliceIndices = matRad_findRtssContourSlicesInCt(contourZ, ct)
 %
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-matRadCfg = MatRad_Config.instance();
+matRad_cfg = MatRad_Config.instance();
 
 if ~isnumeric(contourZ) || ~isscalar(contourZ) || ~isfinite(contourZ)
-    matRadCfg.dispError('contourZ must be a finite numeric scalar.');
+    matRad_cfg.dispError('contourZ must be a finite numeric scalar.');
 end
 
-sliceAxis = matRad_getCtSliceAxis(ct, matRadCfg);
-sliceThickness = matRad_getCtSliceThickness(ct, matRadCfg);
+sliceAxis = matRad_getCtSliceAxis(ct);
+sliceThickness = matRad_getCtSliceThickness(ct);
 
 halfSliceThickness = sliceThickness / 2;
 tol = max(1e-6, 1e-6 * sliceThickness);
@@ -46,7 +46,10 @@ sliceIndices = sliceIndices(:)';
 
 end
 
-function sliceAxis = matRad_getCtSliceAxis(ct, matRadCfg)
+function sliceAxis = matRad_getCtSliceAxis(ct)
+
+matRad_cfg = MatRad_Config.instance();
+
 if isstruct(ct) && isfield(ct, 'z') && isnumeric(ct.z) && isvector(ct.z) && ...
         ~isempty(ct.z)
     sliceAxis = ct.z(:)';
@@ -56,23 +59,26 @@ elseif isstruct(ct) && isfield(ct, 'dicomInfo') && isstruct(ct.dicomInfo) && ...
         ~isempty(ct.dicomInfo.SlicePositions)
     sliceAxis = ct.dicomInfo.SlicePositions(:)';
 else
-    matRadCfg.dispError('ct must contain a numeric z-axis or dicomInfo.SlicePositions.');
+    matRad_cfg.dispError('ct must contain a numeric z-axis or dicomInfo.SlicePositions.');
 end
 
 if any(~isfinite(sliceAxis))
-    matRadCfg.dispError('CT slice positions must be finite.');
+    matRad_cfg.dispError('CT slice positions must be finite.');
 end
 end
 
-function sliceThickness = matRad_getCtSliceThickness(ct, matRadCfg)
+function sliceThickness = matRad_getCtSliceThickness(ct)
+
+matRad_cfg = MatRad_Config.instance();
+
 if ~isstruct(ct) || ~isfield(ct, 'dicomInfo') || ~isstruct(ct.dicomInfo) || ...
         ~isfield(ct.dicomInfo, 'SliceThickness')
-    matRadCfg.dispError('ct.dicomInfo.SliceThickness is required.');
+    matRad_cfg.dispError('ct.dicomInfo.SliceThickness is required.');
 end
 
 sliceThickness = ct.dicomInfo.SliceThickness;
 if ~isnumeric(sliceThickness) || ~isscalar(sliceThickness) || ...
         ~isfinite(sliceThickness) || sliceThickness <= 0
-    matRadCfg.dispError('ct.dicomInfo.SliceThickness must be a positive numeric scalar.');
+    matRad_cfg.dispError('ct.dicomInfo.SliceThickness must be a positive numeric scalar.');
 end
 end
