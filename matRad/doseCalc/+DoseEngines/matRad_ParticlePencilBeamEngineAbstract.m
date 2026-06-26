@@ -493,6 +493,9 @@ classdef (Abstract) matRad_ParticlePencilBeamEngineAbstract < DoseEngines.matRad
                 this.vTissueIndex{s}    = zeros(size(tmpScenVdoseGrid{s},1),1);
             end
            
+            if isa(this.bioModel, 'matRad_LQZStarBasedModel')
+                this.bioKernelQuantities = this.bioModel.kernelQuantities;
+            end
             if isa(this.bioModel,'matRad_LQKernelBasedModel') || isa(this.bioModel,'matRad_LQRBETabulatedModel')
                 this.bioKernelQuantities = this.bioModel.kernelQuantities;
                 [this.vTissueIndex] = this.bioModel.getTissueInformation(this.machine,this.cstDoseGrid,dij,this.vAlphaX, this.vBetaX,this.VdoseGrid, this.VdoseGridScenIx);
@@ -1030,11 +1033,14 @@ classdef (Abstract) matRad_ParticlePencilBeamEngineAbstract < DoseEngines.matRad
         %computed.
         function q = providedQuantities(machine)            
             q = {};
-            if all(isfield(machine.data,{'energy','Z','depths','initFocus'})) && any(isfield(machine.data,{'sigma','weight','multiGauss'}))
+            if all(isfield(machine.data,{'energy','Z','depths','initFocus'})) && any(isfield(machine.data,{'sigma','weight','sigmaMulti', 'weightMulti','multiGauss'}))
                 q{end+1} = 'physicalDose';
                 if all(isfield(machine.data,{'alphaX','betaX','alpha','beta'}))
                     q{end+1} = 'alpha';
                     q{end+1} = 'beta';
+                end
+                if all(isfield(machine.data,{'zs'}))
+                    q{end+1}='zs';
                 end
             end
             if ~isempty(q) && ~isempty(q{1}) && isfield(machine.data,'LET')
