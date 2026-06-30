@@ -243,7 +243,7 @@ classdef matRad_TopasMCEngine < DoseEngines.matRad_MonteCarloEngineAbstract
                     switch obj.radiationMode
                         case 'protons'
                             obj.scorer.RBE_model = obj.scorer.defaultModelProtons;
-                        case {'carbon', 'helium'}
+                        case {'carbon', 'helium','oxygen'}
                             obj.scorer.RBE_model = obj.scorer.defaultModelCarbon;
                         otherwise
                             matRad_cfg.dispError(['No RBE model implemented for ', obj.radiationMode]);
@@ -1383,7 +1383,7 @@ classdef matRad_TopasMCEngine < DoseEngines.matRad_MonteCarloEngineAbstract
                             else
                                 matRad_cfg.dispError(['Model ', obj.scorer.RBE_model{i}, ' not implemented for ', obj.radiationMode]);
                             end
-                        case {'carbon', 'helium'}
+                        case {'carbon', 'helium','oxygen'}
                             % Process available varRBE models for carbon and helium
                             if ~isempty(strfind(lower(obj.scorer.RBE_model{i}), 'libamtrack'))
                                 fname = fullfile(obj.topasFolder, filesep, obj.scorerFolder, filesep, obj.infilenames.Scorer_RBE_libamtrack);
@@ -1489,7 +1489,7 @@ classdef matRad_TopasMCEngine < DoseEngines.matRad_MonteCarloEngineAbstract
                                 fprintf(fID, ['d:Sc/CellLineGeneric' insertText '/AlphaBetaRatiox   = Sc/AlphaBetaX' insertText ' Gy\n\n']);
                             end
                         end
-                    case {'carbon', 'helium'}
+                    case {'carbon', 'helium','oxygen'}
                         if length(obj.bioParameters.AlphaX) == 1
                             fprintf(fID, '\n### Biological Parameters ###\n');
                             fprintf(fID, 'sv:Sc/CellLines = 1 "CellGeneric_abR2"\n');
@@ -1896,7 +1896,7 @@ classdef matRad_TopasMCEngine < DoseEngines.matRad_MonteCarloEngineAbstract
                         end
 
                         switch obj.radiationMode
-                            case {'protons', 'carbon', 'helium', 'VHEE'}
+                            case {'protons', 'carbon', 'helium','oxygen', 'VHEE'}
                                 [~, ixTmp, ~] = intersect(energies, bixelEnergy);
                                 if obj.useOrigBaseData
                                     dataTOPAS(cutNumOfBixel).energy = selectedData(ixTmp).energy;
@@ -2038,6 +2038,15 @@ classdef matRad_TopasMCEngine < DoseEngines.matRad_MonteCarloEngineAbstract
                         fprintf(fileID, 'u:Sim/ParticleMass = 12.0\n');
 
                         particleA = 12;
+                        % particleZ = 6;
+
+                        modules = obj.modules_GenericIon;
+                  
+                    case 'oxygen'
+                        fprintf(fileID, 's:Sim/ParticleName = "GenericIon(8,16)"\n');
+                        fprintf(fileID, 'u:Sim/ParticleMass = 16.0\n');
+
+                        particleA = 16;
                         % particleZ = 6;
 
                         modules = obj.modules_GenericIon;

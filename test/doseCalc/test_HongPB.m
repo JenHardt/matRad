@@ -54,6 +54,18 @@ assertTrue(isequal(fieldnames(resultGUI), fieldnames(testData.resultGUI)));
 assertTrue(isequal(testData.ct.cubeDim, size(resultGUI.physicalDose)));
 assertElementsAlmostEqual(resultGUI.physicalDose, testData.resultGUI.physicalDose, 'relative', 1e-2, 1e-2);
 
+
+function test_calcDoseHongPBoxygen
+testData = load('oxygen_testData.mat');
+assertTrue(DoseEngines.matRad_ParticleHongPencilBeamEngine.isAvailable(testData.pln));
+
+resultGUI = matRad_calcDoseForward(testData.ct, testData.cst, testData.stf, testData.pln, ones(sum([testData.stf(:).totalNumOfBixels]), 1));
+
+assertTrue(isequal(fieldnames(resultGUI), fieldnames(testData.resultGUI)));
+assertTrue(isequal(testData.ct.cubeDim, size(resultGUI.physicalDose)));
+assertElementsAlmostEqual(resultGUI.physicalDose, testData.resultGUI.physicalDose, 'relative', 1e-2, 1e-2);
+
+
 function test_calcDoseHongPBVHEE
 testData = load('VHEE_testData.mat');
 assertTrue(DoseEngines.matRad_ParticleHongPencilBeamEngine.isAvailable(testData.pln));

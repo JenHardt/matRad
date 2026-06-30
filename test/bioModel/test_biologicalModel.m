@@ -147,6 +147,28 @@ function test_calcBiologicalQuantitiesForBixel_LEM
     assertElementsAlmostEqual(bixel.alpha,test_bixelAlpha,'absolute', 1e-4);
     assertElementsAlmostEqual(bixel.beta, test_bixelBeta,'absolute', 1e-4);
 
+function test_calcBiologicalQuantitiesForBixel_MKM
+    bioModel = matRad_bioModel('oxygen','MKM');
+    kernels.zs = 34;
+
+    bixel.energyIx = 4;
+    load oxygen_Generic.mat;
+    bixel.baseData = machine.data(4);
+    bixel.radDepths = 0;
+    bixel.vAlphaX = 0.5;
+    bixel.vBetaX = 0.05;
+    bixel.vTissueIndex = 1;
+    
+    test_bixelAlpha = 2.2;
+    test_bixelBeta = 0.05;
+    
+    [bixel] = calcBiologicalQuantitiesForBixel(bioModel,bixel,kernels);
+    assertTrue(isstruct(bixel));
+    assertTrue(isnumeric(bixel.alpha));
+    assertTrue(isnumeric(bixel.beta));
+    assertElementsAlmostEqual(bixel.alpha,test_bixelAlpha,'absolute', 1e-4);
+    assertElementsAlmostEqual(bixel.beta, test_bixelBeta,'absolute', 1e-4);
+
 % function test_bioOptimization_MCN_BED
 %     matRad_rc;
 %     matRad_cfg = MatRad_Config.instance();
